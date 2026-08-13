@@ -26,7 +26,7 @@
 - ✅ 理解计算图 (Computational Graph)
 - ✅ 掌握反向传播 (Backpropagation)
 - ✅ 实现自动求导 (Autograd)
-- ✅ 理解神经网络的数学基础
+- ✅ 理解神经��络的数学基础
 
 ### 快速开始
 
@@ -266,6 +266,64 @@ Query × Key^T / √d → Softmax → × Value
    - 在 nanoGPT 基础上
    - 添加约束 / 控制
    - 实现主题聚焦生成
+
+---
+
+## 🟤 Deepseek Harness 项目（可作为综合项目）
+
+### 项目简介
+**Deepseek Harness（Deepseek-harness）** 是围绕 DeepSeek 生态的运行时与插件系统，包含插件、数据源适配器、UI 客户端与 API 中继等组件。学习并实现一个 harness 插件或运行环境，能帮助你理解 agent/harness 架构、工具调用以及如何扩展 Agent 的能力。
+
+### 学习目标
+- ✅ 理解 Deepseek-harness 的整体架构（插件生命周期、数据源、工具调用）
+- ✅ 能搭建并运行一个现成的 harness 实例
+- ✅ 实现一个简单的插件或数据源适配器
+- ✅ 理解安全与资源隔离（沙箱、权限）
+
+### 快速开始（示例仓库）
+
+- 克隆资源列表（推荐先阅读生态清单）：
+  - https://github.com/0xsline/awesome-deepseek-harness
+- 克隆 harness 源码示例（任选其一开始）：
+  - https://github.com/Joe-zhouman/deepseek-harness-src
+  - 也可参考桌面/客户端项目：https://github.com/MiniLaba/deepseek-harness-desktop
+
+```bash
+# Step 1: 克隆示例仓库
+git clone https://github.com/Joe-zhouman/deepseek-harness-src.git
+cd deepseek-harness-src
+
+# Step 2: 阅读 README，安装依赖并运行（各仓库说明不同）
+# 一般会有类似命令：
+# pip install -r requirements.txt 或 npm install
+# 然后运行服务： python main.py 或 npm start
+```
+
+### 核心任务（建议分三天完成）
+1. Day 1 — 理解与运行
+   - [ ] 阅读项目 README 与架构文档
+   - [ ] 本地启动 harness 实例，确保基础服务可用
+   - [ ] 用官方或示例插件执行一次完整流程
+
+2. Day 2 — 插件/适配器开发
+   - [ ] 实现一个简单插件（例如：HTTP 数据源、网页抓取器或一个简单工具调用）
+   - [ ] 写单元测试验证接口
+   - [ ] 在本地 harness 中加载并验证插件功能
+
+3. Day 3 — 安全与集成
+   - [ ] 理解并配置插件权限/沙箱策略
+   - [ ] 集成一个外部 API（例如搜索或简单 LLM 代理）以增强插件能力
+   - [ ] 编写使用说明与 demo 脚本
+
+### 验收标准
+- ✅ 本地能启动 harness 并运行至少一个插件
+- ✅ 成功实现并加载自定义插件/数据源
+- ✅ 提交测试用例覆盖主要接口
+- ✅ 写出 1 页的技术总结（运行步骤、架构要点、改进建议）
+
+### 参考资料
+- Deepseek 相关仓库搜索结果：https://github.com/search?q=deepseek+in%3Aname&sort=updated&order=desc
+- 生态精选（插件/工具/基建）：https://github.com/0xsline/awesome-deepseek-harness
 
 ---
 
