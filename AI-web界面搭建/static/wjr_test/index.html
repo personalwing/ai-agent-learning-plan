@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WJR MongoDB API 测试平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0c29; color: #e2e8f0; height: 100vh; overflow: hidden; }
+        
+        .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; }
+        
+        .top-nav { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            padding: 8px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .top-nav h1 { font-size: 16px; font-weight: 600; }
+        .top-nav .badge { background: rgba(255,255,255,0.2); padding: 2px 12px; border-radius: 20px; font-size: 10px; }
+        .top-nav .status-bar { display: flex; align-items: center; gap: 12px; font-size: 11px; }
+        .top-nav .status-dot { 
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block; 
+            background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+        .top-nav .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .main-body { display: flex; flex: 1; overflow: hidden; gap: 0; }
+        
+        /* 左侧：固定接口文档（收窄，主要用扫描接口） */
+        .fixed-panel {
+            width: 20%;
+            display: flex;
+            flex-direction: column;
+            background: rgba(17, 24, 39, 0.95);
+            border-right: 1px solid rgba(124, 58, 237, 0.2);
+        }
+        .fixed-panel .panel-header {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .fixed-panel .panel-header h2 { font-size: 12px; color: #48bb78; }
+        .fixed-panel .panel-header .count { font-size: 10px; color: #6b7280; }
+        
+        .scanned-panel {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            background: rgba(17, 24, 39, 0.9);
+            border-right: 1px solid rgba(124, 58, 237, 0.15);
+        }
+        .scanned-panel .panel-header {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .scanned-panel .panel-header h2 { font-size: 12px; color: #f59e0b; }
+        .scanned-panel .panel-header .btn-group { display: flex; gap: 4px; }
+        .scanned-panel .panel-header .btn {
+            padding: 3px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-primary:hover { background: #5a67d8; }
+        .btn-success { background: #48bb78; color: #fff; }
+        .btn-success:hover { background: #38a169; }
+        
+        .test-panel {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            background: rgba(17, 24, 39, 0.9);
+        }
+        .test-panel .panel-header {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .test-panel .panel-header h2 { font-size: 12px; color: #a78bfa; }
+        
+        .api-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2px 0;
+        }
+        .api-list-container::-webkit-scrollbar { width: 3px; }
+        .api-list-container::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+        
+        .api-item {
+            padding: 5px 10px;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.12);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .api-item:hover { background: rgba(124,58,237,0.08); }
+        .api-line1 { display: flex; gap: 4px; align-items: center; }
+        .api-line2 { display: flex; gap: 4px; align-items: center; }
+        .api-item .method-tag {
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .method-GET { background: #48bb78; color: #fff; }
+        .method-POST { background: #4299e1; color: #fff; }
+        .method-PUT { background: #ed8936; color: #fff; }
+        .method-DELETE { background: #fc8181; color: #fff; }
+
+        .api-item .api-name {
+            font-weight: 500;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .api-item .path-text {
+            font-family: monospace;
+            font-size: 9px;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #9ca3af;
+        }
+        .api-item .api-desc {
+            font-size: 9px;
+            color: #6b7280;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .api-item .source-tag {
+            font-size: 7px;
+            padding: 1px 5px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .source-fixed { background: rgba(72,187,120,0.2); color: #48bb78; }
+        .source-scanned { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .api-item .risk-badge { font-size: 8px; padding: 1px 4px; border-radius: 8px; flex-shrink: 0; }
+        .risk-high { background: rgba(252,129,129,0.2); color: #fc8181; }
+        .api-item .category-tag {
+            font-size: 7px;
+            padding: 1px 5px;
+            border-radius: 8px;
+            background: rgba(124,58,237,0.15);
+            color: #a78bfa;
+            flex-shrink: 0;
+        }
+        
+        .hint-text { color: #6b7280; font-size: 11px; text-align: center; padding: 20px 0; }
+        
+        .test-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 12px;
+            overflow: hidden;
+        }
+        .test-body .row { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; align-items: center; }
+        .test-body .row label { color: #9ca3af; font-size: 10px; min-width: 36px; }
+        .test-body select, .test-body input {
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 11px;
+            outline: none;
+        }
+        .test-body select:focus, .test-body input:focus { border-color: #7c3aed; }
+        .test-body select { min-width: 60px; }
+        .test-body input { flex: 1; min-width: 60px; }
+        .action-row { display: none; }
+        .action-row.show { display: flex; }
+        .action-row select { flex: 1; }
+        .test-body textarea {
+            width: 100%;
+            padding: 4px 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 10px;
+            font-family: monospace;
+            outline: none;
+            resize: vertical;
+        }
+        .test-body textarea:focus { border-color: #7c3aed; }
+        
+        .response-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            margin-top: 4px;
+        }
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            margin-bottom: 2px;
+        }
+        .response-header .label { color: #9ca3af; font-size: 10px; }
+        .copy-resp-btn {
+            padding: 2px 10px;
+            border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 3px;
+            background: rgba(124,58,237,0.1);
+            color: #a78bfa;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-resp-btn:hover { background: rgba(124,58,237,0.25); }
+        .copy-resp-btn.copied { background: rgba(34,197,94,0.2); color: #22c55e; border-color: #22c55e; }
+        .response-area {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 3px;
+            padding: 6px 10px;
+            font-family: monospace;
+            font-size: 10px;
+            white-space: pre-wrap;
+            overflow: auto;
+            border: 1px solid rgba(55, 65, 81, 0.2);
+            min-height: 120px;
+        }
+        .response-area .hint { color: #6b7280; font-size: 10px; }
+        
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            font-size: 10px;
+            color: #9ca3af;
+            padding: 2px 0;
+            flex-shrink: 0;
+        }
+        .stats-row span { color: #a78bfa; font-weight: 600; }
+        
+        .send-btn {
+            padding: 3px 14px;
+            border: none;
+            border-radius: 3px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #fff;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+        
+        .clear-btn {
+            padding: 3px 10px;
+            border: none;
+            border-radius: 3px;
+            background: rgba(239,68,68,0.6);
+            color: #fff;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .clear-btn:hover { background: #ef4444; }
+        
+        .default-headers {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-size: 9px;
+            color: #6b7280;
+            font-family: monospace;
+            margin-bottom: 3px;
+            max-height: 50px;
+            overflow-y: auto;
+            border: 1px solid rgba(55,65,81,0.15);
+        }
+        .default-headers .hl { color: #a78bfa; }
+        
+        @media (max-width: 1024px) {
+            .main-body { flex-direction: column; }
+            .fixed-panel, .scanned-panel, .test-panel { width: 100%; max-height: 33vh; border-right: none; border-bottom: 1px solid rgba(124,58,237,0.15); }
+        }
+        @media (max-width: 640px) {
+            .top-nav { flex-wrap: wrap; gap: 4px; }
+            .top-nav .status-bar { font-size: 9px; gap: 6px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="top-nav">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <h1>🍃 MongoDB API 测试平台</h1>
+            <span class="badge">v2.0</span>
+        </div>
+        <div class="status-bar">
+            <span>📄 固定: <span id="fixedCount">0</span> | 🔍 扫描: <span id="scannedCount">0</span></span>
+            <span>⏱ <span id="responseTime">-</span></span>
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">就绪</span>
+        </div>
+    </div>
+    
+    <div class="main-body">
+        <!-- 左侧：固定接口文档 -->
+        <div class="fixed-panel">
+            <div class="panel-header">
+                <h2>📄 固定接口 (文档)</h2>
+                <span class="count" id="fixedCountLabel">0 个</span>
+            </div>
+            <div class="api-list-container" id="fixedApiList">
+                <div class="hint-text">加载固定接口文档...</div>
+            </div>
+        </div>
+        
+        <!-- 中间：KSCC扫描接口 -->
+        <div class="scanned-panel">
+            <div class="panel-header">
+                <h2>🔍 扫描接口 (KSCC AI)</h2>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="discoverAPIs()">🔍 扫描</button>
+                    <button class="btn btn-success" onclick="runAllTests()">▶ 运行</button>
+                </div>
+            </div>
+            <div class="api-list-container" id="scannedApiList">
+                <div class="hint-text">点击 "扫描" 发现 API</div>
+            </div>
+        </div>
+        
+        <!-- 右侧：请求/响应 -->
+        <div class="test-panel">
+            <div class="panel-header">
+                <h2>🚀 请求测试</h2>
+                <button class="clear-btn" onclick="clearResults()">清空</button>
+            </div>
+            <div class="test-body">
+                <div class="default-headers" id="defaultHeaders">
+                    <span class="hl">X-Auth-Project-Id:</span> <PROJECT_ID> &nbsp;
+                    <span class="hl">X-Auth-Token:</span> <AUTH_TOKEN> &nbsp;
+                    <span class="hl">X-KSC-APPLICATION-NAME:</span> ktrove
+                </div>
+                
+                <div class="row">
+                    <label>方法:</label>
+                    <select id="method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="apiPath" placeholder="/v1.0/{tenant_id}/mongodb-repset" style="flex:1;font-size:10px;">
+                    <button class="send-btn" onclick="sendRequest()">发送</button>
+                </div>
+                <div class="row" style="margin-bottom:2px;">
+                    <label>tenant:</label>
+                    <input type="text" id="tenantId" value="092019a81f644fa0a6643153f25a8d3d" style="flex:1;font-size:10px;">
+                </div>
+                <div class="row" style="margin-bottom:2px;">
+                    <label>Headers:</label>
+                    <textarea id="requestHeaders" rows="1" placeholder='{"X-Auth-Project-Id":"<PROJECT_ID>"}' style="height:20px;font-size:10px;"></textarea>
+                </div>
+                <div class="row action-row" id="actionRow" style="margin-bottom:2px;">
+                    <label>action:</label>
+                    <select id="actionSelect" onchange="onActionChange()"></select>
+                </div>
+                <div class="row" style="margin-bottom:2px;">
+                    <label>Body:</label>
+                    <textarea id="requestBody" rows="6" placeholder='{"key":"value"}' style="height:110px;font-size:10px;"></textarea>
+                </div>
+                <div class="row" style="margin-bottom:2px;">
+                    <label>Params:</label>
+                    <input type="text" id="requestParams" placeholder="?limit=10&page=1" style="flex:1;font-size:10px;">
+                </div>
+                
+                <div class="stats-row">
+                    <span>✅ 通过: <span id="passedTests">0</span></span>
+                    <span>❌ 失败: <span id="failedTests">0</span></span>
+                    <span>📊 总: <span id="totalTests">0</span></span>
+                </div>
+
+                <div class="response-wrap">
+                    <div class="response-header">
+                        <span class="label">📋 响应</span>
+                        <button class="copy-resp-btn" id="copyRespBtn" onclick="copyResponse()">复制响应</button>
+                    </div>
+                    <div class="response-area" id="responseArea"><span class="hint">等待请求...</span></div>
+                </div>
+
+                <div class="response-wrap" style="flex-shrink:0;">
+                    <div class="response-header">
+                        <span class="label">🔧 curl 命令</span>
+                        <button class="copy-resp-btn" id="copyCurlBtn" onclick="copyCurl()">复制 curl</button>
+                    </div>
+                    <div class="response-area" id="curlArea" style="min-height:40px;max-height:90px;"><span class="hint">填写参数后生成 curl...</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 数据
+// ============================================================
+var fixedApis = [];
+var scannedApis = [];
+var testResults = [];
+var apiRegistry = {};   // id -> apiObj，供 selectAPI 取完整对象
+
+// 加载固定接口
+function loadFixedApis() {
+    fetch('/wjr-test/api/fixed-apis')
+    .then(function(resp) { return resp.json(); })
+    .then(function(result) {
+        if (result.success) {
+            fixedApis = result.data || [];
+            renderFixedApis();
+            document.getElementById('fixedCount').textContent = fixedApis.length;
+            document.getElementById('fixedCountLabel').textContent = fixedApis.length + ' 个';
+        }
+    })
+    ['catch'](function(e) { console.error('加载固定接口失败:', e); });
+}
+
+function renderFixedApis() {
+    var container = document.getElementById('fixedApiList');
+    if (fixedApis.length === 0) {
+        container.innerHTML = '<div class="hint-text">暂无固定接口</div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < fixedApis.length; i++) {
+        var api = fixedApis[i];
+        var regId = 'fixed_' + i;
+        apiRegistry[regId] = api;
+        var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
+            '<span class="risk-badge risk-high">高</span>' : '';
+        var category = api.category ? '<span class="category-tag">' + api.category.replace('接口', '') + '</span>' : '';
+        var desc = api.description ? '<div class="api-desc" title="' + api.description + '">' + api.description + '</div>' : '';
+        html += '<div class="api-item" onclick="selectAPI(\'' + api.path.replace(/'/g, "\\'") + '\', \'' + api.method + '\', apiRegistry[\'' + regId + '\'])">' +
+            '<div class="api-line1">' +
+            '<span class="method-tag method-' + api.method + '">' + api.method + '</span>' +
+            '<span class="api-name" title="' + (api.name || '') + '">' + (api.name || api.path.split('/').pop() || '') + '</span>' +
+            category +
+            '<span class="source-tag source-fixed">文档</span>' +
+            risk +
+            '</div>' +
+            '<div class="api-line2">' +
+            '<span class="path-text" title="' + api.path + '">' + api.path.replace(/{tenant_id}/g, '{t}') + '</span>' +
+            '</div>' +
+            desc +
+        '</div>';
+    }
+    container.innerHTML = html;
+}
+
+// ============================================================
+// KSCC扫描功能
+// ============================================================
+function updateStatus(text, type) {
+    var dot = document.getElementById('statusDot');
+    var statusText = document.getElementById('statusText');
+    if (type === 'loading') {
+        dot.className = 'status-dot loading';
+        statusText.textContent = text || '处理中...';
+    } else if (type === 'error') {
+        dot.className = 'status-dot';
+        dot.style.background = '#ef4444';
+        statusText.textContent = text || '错误';
+    } else {
+        dot.className = 'status-dot';
+        dot.style.background = '#22c55e';
+        statusText.textContent = text || '就绪';
+    }
+}
+
+function discoverAPIs() {
+    updateStatus('扫描中...', 'loading');
+    fetch('/wjr-test/api/discover')
+    .then(function(resp) { return resp.json(); })
+    .then(function(result) {
+        if (result.success) {
+            scannedApis = result.data.scanned_apis || [];
+            renderScannedApis();
+            document.getElementById('scannedCount').textContent = scannedApis.length;
+            updateStatus('发现 ' + scannedApis.length + ' 个接口', 'ready');
+        } else {
+            updateStatus('扫描失败: ' + result.error, 'error');
+        }
+    })
+    ['catch'](function(e) {
+        updateStatus('请求失败', 'error');
+    });
+}
+
+function renderScannedApis() {
+    var container = document.getElementById('scannedApiList');
+    if (scannedApis.length === 0) {
+        container.innerHTML = '<div class="hint-text">点击 "扫描" 发现 API</div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < scannedApis.length; i++) {
+        var api = scannedApis[i];
+        var regId = 'scanned_' + i;
+        apiRegistry[regId] = api;
+        var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
+            '<span class="risk-badge risk-high">高</span>' : '';
+        var name = api.name || api.path.split('/').pop() || '未知';
+        var desc = api.description ? '<div class="api-desc" title="' + api.description + '">' + api.description + '</div>' : '';
+        // action 接口标记一个小角标提示有下拉
+        var actBadge = (api.actions && api.actions.length) ? '<span class="category-tag">' + api.actions.length + '动作</span>' : '';
+        html += '<div class="api-item" onclick="selectAPI(\'' + api.path.replace(/'/g, "\\'") + '\', \'' + api.method + '\', apiRegistry[\'' + regId + '\'])">' +
+            '<div class="api-line1">' +
+            '<span class="method-tag method-' + api.method + '">' + api.method + '</span>' +
+            '<span class="api-name" title="' + name + '">' + name + '</span>' +
+            actBadge +
+            '<span class="source-tag source-scanned">扫描</span>' +
+            risk +
+            '</div>' +
+            '<div class="api-line2">' +
+            '<span class="path-text" title="' + api.path + '">' + api.path + '</span>' +
+            '</div>' +
+            desc +
+        '</div>';
+    }
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 选择API
+// ============================================================
+var currentApi = null;
+function selectAPI(path, method, apiObj) {
+    currentApi = apiObj || null;
+    document.getElementById('apiPath').value = path;
+    if (method) {
+        document.getElementById('method').value = method;
+    }
+    var actionRow = document.getElementById('actionRow');
+    var actionSel = document.getElementById('actionSelect');
+    // 有 actions 子列表 -> 渲染下拉框
+    if (apiObj && apiObj.actions && apiObj.actions.length) {
+        actionRow.classList.add('show');
+        var opts = '<option value="">-- 选择 action --</option>';
+        for (var i = 0; i < apiObj.actions.length; i++) {
+            opts += '<option value="' + i + '">' + apiObj.actions[i].key + '</option>';
+        }
+        actionSel.innerHTML = opts;
+        document.getElementById('requestBody').value = '';
+    } else {
+        actionRow.classList.remove('show');
+        actionSel.innerHTML = '';
+        // 有 body_template -> 直接填 body
+        if (apiObj && apiObj.body_template) {
+            try {
+                document.getElementById('requestBody').value = JSON.stringify(JSON.parse(apiObj.body_template), null, 2);
+            } catch (e) {
+                document.getElementById('requestBody').value = apiObj.body_template;
+            }
+        }
+    }
+    buildCurl();
+}
+
+function onActionChange() {
+    if (!currentApi || !currentApi.actions) return;
+    var sel = document.getElementById('actionSelect');
+    var idx = parseInt(sel.value, 10);
+    if (isNaN(idx)) { document.getElementById('requestBody').value = ''; buildCurl(); return; }
+    var act = currentApi.actions[idx];
+    try {
+        document.getElementById('requestBody').value = JSON.stringify(JSON.parse(act.body), null, 2);
+    } catch (e) {
+        document.getElementById('requestBody').value = act.body;
+    }
+    buildCurl();
+}
+
+// ============================================================
+// 复制 / curl 生成
+// ============================================================
+function copyText(text, btnId) {
+    if (!text) return;
+    var btn = document.getElementById(btnId);
+    var done = function() {
+        var orig = btn.textContent;
+        btn.textContent = '✅ 已复制';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function() {
+            var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+            ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+        });
+    } else {
+        var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+    }
+}
+function copyResponse() {
+    var area = document.getElementById('responseArea');
+    copyText(area.innerText || area.textContent, 'copyRespBtn');
+}
+function copyCurl() {
+    copyText(document.getElementById('curlArea').innerText || document.getElementById('curlArea').textContent, 'copyCurlBtn');
+}
+function escapeShell(s) {
+    // 单引号转义：' -> '\''
+    return "'" + String(s).replace(/'/g, "'\\''") + "'";
+}
+function buildCurl() {
+    var method = document.getElementById('method').value;
+    var path = document.getElementById('apiPath').value;
+    var tenantId = document.getElementById('tenantId').value || '092019a81f644fa0a6643153f25a8d3d';
+    var headersStr = document.getElementById('requestHeaders').value;
+    var body = document.getElementById('requestBody').value;
+    var params = document.getElementById('requestParams').value;
+
+    if (!path) { document.getElementById('curlArea').innerHTML = '<span class="hint">填写参数后生成 curl...</span>'; return; }
+
+    var realPath = path.replace(/{tenant_id}/g, tenantId);
+    // page -> offset，与后端 handler 保持一致
+    var qs = params.replace(/^\?/, '');
+    if (qs) {
+        var parts = qs.split('&');
+        var page = null, limit = 10, rest = [];
+        for (var i = 0; i < parts.length; i++) {
+            var kv = parts[i].split('='), k = kv[0], v = kv[1] || '';
+            if (k === 'page') { page = parseInt(v, 10); }
+            else if (k === 'limit') { limit = parseInt(v, 10) || limit; rest.push(k + '=' + v); }
+            else if (k) { rest.push(k + '=' + v); }
+        }
+        if (page !== null && isNaN(page) === false) { rest.push('offset=' + Math.max(0, (page - 1) * limit)); }
+        qs = rest.join('&');
+    }
+    var url = 'http://<SQL_PROXY_HOST>:9777' + realPath + (qs ? '?' + qs : '');
+
+    // 默认 header（与 handler.py DEFAULT_HEADERS 一致）
+    var defaultHeaders = {
+        'X-Auth-Project-Id': '<PROJECT_ID>',
+        'X-Auth-Token': '<AUTH_TOKEN>',
+        'X-KSC-APPLICATION-TOKEN': '<APPLICATION_TOKEN>',
+        'X-KSC-APPLICATION-NAME': 'ktrove',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    };
+    try { var extra = headersStr ? JSON.parse(headersStr) : {}; } catch (e) { var extra = {}; }
+    for (var k in extra) { defaultHeaders[k] = extra[k]; }
+
+    var cmd = 'curl -X ' + method;
+    for (var k in defaultHeaders) {
+        cmd += ' \\\n  -H ' + escapeShell(k + ': ' + defaultHeaders[k]);
+    }
+    if (body && method !== 'GET') {
+        cmd += ' \\\n  -d ' + escapeShell(body);
+    }
+    cmd += ' \\\n  ' + escapeShell(url);
+    document.getElementById('curlArea').textContent = cmd;
+}
+
+// ============================================================
+// 发送请求
+// ============================================================
+function sendRequest() {
+    var method = document.getElementById('method').value;
+    var path = document.getElementById('apiPath').value;
+    var tenantId = document.getElementById('tenantId').value || '092019a81f644fa0a6643153f25a8d3d';
+    var headers = document.getElementById('requestHeaders').value;
+    var body = document.getElementById('requestBody').value;
+    var params = document.getElementById('requestParams').value;
+
+    if (!path) { alert('请输入 API 路径'); return; }
+
+    updateStatus('请求中...', 'loading');
+    var area = document.getElementById('responseArea');
+    area.textContent = '⏳ 请求中...';
+    buildCurl();
+
+    var reqBody = {
+        path: path,
+        method: method,
+        tenant_id: tenantId,
+        headers: headers ? JSON.parse(headers) : {},
+        params: params ? Object.fromEntries(new URLSearchParams(params)) : {},
+        body: body ? JSON.parse(body) : {}
+    };
+
+    fetch('/wjr-test/api/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(reqBody)
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(result) {
+        if (result.success) {
+            var data = result.data;
+            area.textContent = JSON.stringify(data, null, 2);
+            document.getElementById('responseTime').textContent = data.elapsed + 's';
+            updateStatus('完成 (' + data.status_code + ')', 'ready');
+            bumpTestCount(data.status_code < 400);
+        } else {
+            area.textContent = '❌ 错误: ' + result.error;
+            updateStatus('请求失败', 'error');
+            bumpTestCount(false);
+        }
+    })
+    ['catch'](function(e) {
+        area.textContent = '❌ 异常: ' + e.message;
+        updateStatus('异常', 'error');
+        bumpTestCount(false);
+    });
+}
+
+function bumpTestCount(passed) {
+    var p = document.getElementById('passedTests');
+    var f = document.getElementById('failedTests');
+    var t = document.getElementById('totalTests');
+    t.textContent = parseInt(t.textContent, 10) + 1;
+    if (passed) { p.textContent = parseInt(p.textContent, 10) + 1; }
+    else { f.textContent = parseInt(f.textContent, 10) + 1; }
+}
+
+// ============================================================
+// 运行所有测试
+// ============================================================
+function runAllTests() {
+    var allApis = fixedApis.concat(scannedApis);
+    if (allApis.length === 0) {
+        alert('请先加载固定接口或点击 "扫描"');
+        return;
+    }
+    
+    var testCases = [];
+    for (var i = 0; i < Math.min(allApis.length, 50); i++) {
+        var api = allApis[i];
+        testCases.push({
+            name: (api.name || api.path) + ' (' + api.method + ')',
+            method: api.method,
+            path: api.path,
+            expected_status: 200
+        });
+    }
+    
+    updateStatus('运行测试中...', 'loading');
+    
+    fetch('/wjr-test/api/run-tests', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ test_cases: testCases, parallel: false })
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(result) {
+        if (result.success) {
+            testResults = result.data.results;
+            document.getElementById('passedTests').textContent = result.data.passed;
+            document.getElementById('failedTests').textContent = result.data.failed;
+            document.getElementById('totalTests').textContent = result.data.total_tests;
+            updateStatus('通过 ' + result.data.passed + '/' + result.data.total_tests, 'ready');
+            
+            var area = document.getElementById('responseArea');
+            var summary = '📊 测试结果摘要\n';
+            summary += '总计: ' + result.data.total_tests + '\n';
+            summary += '通过: ' + result.data.passed + '\n';
+            summary += '失败: ' + result.data.failed + '\n';
+            summary += '通过率: ' + result.data.summary.trends.pass_rate + '\n';
+            if (result.data.summary.errors.length > 0) {
+                summary += '\n❌ 失败详情:\n';
+                for (var i = 0; i < Math.min(result.data.summary.errors.length, 5); i++) {
+                    var err = result.data.summary.errors[i];
+                    summary += '  - ' + err.test + ': ' + err.error + '\n';
+                }
+                if (result.data.summary.errors.length > 5) {
+                    summary += '  ... 还有 ' + (result.data.summary.errors.length - 5) + ' 个失败\n';
+                }
+            }
+            area.textContent = summary;
+        }
+    })
+    ['catch'](function(e) {
+        updateStatus('测试失败', 'error');
+    });
+}
+
+function clearResults() {
+    document.getElementById('passedTests').textContent = '0';
+    document.getElementById('failedTests').textContent = '0';
+    document.getElementById('totalTests').textContent = '0';
+    document.getElementById('responseArea').innerHTML = '<span class="hint">等待请求...</span>';
+}
+
+// ============================================================
+// 回车快捷键
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadFixedApis();
+    buildCurl();
+
+    var apiPath = document.getElementById('apiPath');
+    apiPath.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') sendRequest();
+    });
+    // 输入变化时实时刷新 curl 预览
+    ['apiPath','method','tenantId','requestHeaders','requestBody','requestParams'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', buildCurl);
+        if (el && el.tagName === 'SELECT') el.addEventListener('change', buildCurl);
+    });
+});
+</script>
+</body>
+</html>
