@@ -16,4 +16,60 @@ WJR MongoDB API 测试平台是一个基于 KSCC (Kyun Service Cloud Console) �
 
 ---
 
-## 🏗️ 系统架构
+## 🏗️ 目录结构
+/root/
+├── app.py # 主程序 (HTTP 服务)
+├── app.py.backup # 备份文件 (自动生成)
+├── kscc_session_id.txt # KSCC 会话ID (运行时生成)
+│
+├── wjr_test/ # WJR-Test 模块
+│ ├── init.py # 模块初始化
+│ └── handler.py # 核心处理器
+│
+├── static/ # 静态文件
+│ └── wjr_test/
+│ └── index.html # Web 界面
+│
+└── tmp/
+└── app.log # 服务运行日志
+
+
+## 📦 环境要求
+
+| 组件 | 版本要求 | 说明 |
+|------|---------|------|
+| 操作系统 | CentOS 7 / RHEL 7 | 或其他 Linux 发行版 |
+| Python | 2.7.x | 项目基于 Python 2.7 |
+| Docker | 任意版本 | 用于运行 KSCC 容器 |
+| 网络 | {宿主机} ↔ {调用端} | 需要互通 |
+
+## 部署
+# 创建 WJR-Test 模块目录
+mkdir -p /root/wjr_test
+
+# 创建静态文件目录
+mkdir -p /root/static/wjr_test
+
+# 创建日志目录（如需要）
+mkdir -p /tmp
+
+# 检查文件是否存在
+ls -la /root/app.py
+ls -la /root/wjr_test/__init__.py
+ls -la /root/wjr_test/handler.py
+ls -la /root/static/wjr_test/index.html
+
+# 停止旧服务（如果存在）
+pkill -f "python /root/app.py"
+
+# 启动服务
+nohup python /root/app.py >> /tmp/app.log 2>&1 &
+
+# 查看启动日志
+tail -f /tmp/app.log
+
+
+🌐 访问地址
+功能	URL
+MongoDB API 测试平台	http://<APP_HOST>:8888/wjr-test
+KSCC AI 对话	http://<APP_HOST>:8888/
