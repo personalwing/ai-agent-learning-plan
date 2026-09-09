@@ -71,5 +71,5 @@ tail -f /tmp/app.log
 
 🌐 访问地址
 功能	URL
-MongoDB API 测试平台	http://<APP_HOST>:8888/wjr-test
-KSCC AI 对话	http://<APP_HOST>:8888/
+MongoDB API 测试平台	http://{地址}:8888/wjr-test
+KSCC AI 对话	http://{地址}:8888/
