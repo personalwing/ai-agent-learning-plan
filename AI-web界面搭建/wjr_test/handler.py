@@ -5,6 +5,9 @@ import time
 import re
 from datetime import datetime
 
+# MySQL连接配置（通过 <SQL_PROXY_HOST> 上的 SQL 代理服务）
+SQL_PROXY_URL = 'http://<SQL_PROXY_HOST>:5001/query'
+
 # 默认请求头（根据接口文档固定）
 DEFAULT_HEADERS = {
     "X-Auth-Project-Id": "<PROJECT_ID>",
@@ -56,7 +59,7 @@ FIXED_APIS = [
 SCANNED_APIS = [
     # ==================== 副本集 repset ====================
     {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "GET", "category": "副本集", "name": "副本集列表", "description": "获取所有未删除副本集实例列表，分页用 offset/limit"},
-    {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "POST", "category": "副本集", "name": "创建副本集", "description": "创建 MongoDB 副本集实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_cluster\": {\"name\": \"\", \"node_num\": 3, \"admin_user\": \"root\", \"admin_password\": \"\", \"volume_size\": 25, \"area\": \"1\"}}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "POST", "category": "副本集", "name": "创建副本集", "description": "创建 MongoDB 副本集实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"disk_size\": 25, \"name\": \"wjrdev32\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"node_num\": 3, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"version\": \"3.2\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}", "method": "GET", "category": "副本集", "name": "副本集详情", "description": "获取指定副本集实例详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}", "method": "DELETE", "category": "副本集", "name": "删除副本集", "description": "删除指定副本集实例"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}/action", "method": "POST", "category": "副本集", "name": "副本集动作", "description": "lock/unlock/rename/restart/resize/add_user 等 action，选中后 body 自动填充", "actions": [
@@ -76,7 +79,7 @@ SCANNED_APIS = [
 
     # ==================== 分片集群 cluster ====================
     {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "GET", "category": "分片集群", "name": "集群列表", "description": "获取所有未删除分片集群实例列表，分页用 offset/limit"},
-    {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "POST", "category": "分片集群", "name": "创建集群", "description": "创建 MongoDB 分片集群实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_cluster\": {\"name\": \"\", \"mode\": \"cluster\", \"admin_user\": \"root\", \"admin_password\": \"\", \"volume_size\": 25, \"area\": \"1\", \"shard_num\": 2, \"node_num\": 3}}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "POST", "category": "分片集群", "name": "创建集群", "description": "创建 MongoDB 分片集群实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_cluster\": {\"admin_user\": \"root\", \"protocol\": \"memcached\", \"name\": \"wjrdev80\", \"shards\": {\"vcpu\": 2, \"mem_size\": 4, \"shards_num\": 2, \"disk_size\": 15, \"area\": [\"1\"]}, \"config_server\": {\"vcpu\": 2, \"mem_size\": 4, \"disk_size\": 40}, \"mongos\": {\"vcpu\": 2, \"mem_size\": 4, \"mongos_num\": 2, \"disk_size\": 15, \"area\": [\"2\"]}, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"datastore\": {\"version\": \"8.0\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
     {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}", "method": "GET", "category": "分片集群", "name": "集群详情", "description": "获取指定分片集群实例详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}", "method": "DELETE", "category": "分片集群", "name": "删除集群", "description": "删除指定分片集群实例"},
     {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}/action", "method": "POST", "category": "分片集群", "name": "集群动作", "description": "list_shards/add_shard/lock/unlock 等 action，选中后 body 自动填充", "actions": [
@@ -99,7 +102,7 @@ SCANNED_APIS = [
 
     # ==================== 通用资源 resource ====================
     {"path": "/v1.0/{tenant_id}/mongodb-resource", "method": "GET", "category": "通用", "name": "资源列表", "description": "获取所有未删除 MongoDB 资源(repset+cluster)列表，分页用 offset/limit"},
-    {"path": "/v1.0/{tenant_id}/mongodb-resource", "method": "POST", "category": "通用", "name": "创建资源", "description": "创建 MongoDB 资源(按 type/mode 指定副本集或集群)，选中后 body 自动填充", "body_template": "{\"mongodb_cluster\": {\"name\": \"\", \"mode\": \"replicaset\", \"admin_user\": \"root\", \"admin_password\": \"\", \"volume_size\": 25, \"area\": \"1\", \"node_num\": 3}}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-resource", "method": "POST", "category": "通用", "name": "创建资源", "description": "创建 MongoDB 资源(按 type/mode 指定副本集或集群)，选中后 body 自动填充", "body_template": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"disk_size\": 25, \"name\": \"wjrdev32\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"node_num\": 3, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"version\": \"3.2\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}", "method": "GET", "category": "通用", "name": "资源详情", "description": "获取指定 MongoDB 资源详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}", "method": "DELETE", "category": "通用", "name": "删除资源", "description": "删除指定 MongoDB 资源"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}/action", "method": "POST", "category": "通用", "name": "资源动作", "description": "lock/unlock/rename/restart/resize 等 action，选中后 body 自动填充", "actions": [
@@ -168,7 +171,7 @@ class WJRTestHandler:
     def __init__(self):
         # 直连 ktrove-api 后端（<SQL_PROXY_HOST> 宿主 9777 端口），不再经 <APP_HOST>:8888 的 /api/ktrove 代理
         # （该代理路由在 app.py 中并不存在，会导致请求打回自己/404 并最终超时）
-        self.kscc_base_url = "http://{服务地址}:9777"  # 替换为实际服务地址
+        self.kscc_base_url = "http://<SQL_PROXY_HOST>:9777"
         self.ktrove_proxy_path = ""
         self.scanner = APIScanner()
         self.runner = TestRunner()
@@ -310,9 +313,41 @@ class WJRTestHandler:
             return {'success': False, 'error': str(e)}
     
     def handle_fixed_apis(self):
-        """获取固定接口列表"""
-        return {'success': True, 'data': FIXED_APIS}
-    
+        """获取固定接口列表 - 改为从MySQL查询"""
+        return self.execute_sql_query("SELECT * FROM api_endpoints WHERE is_fixed=1 AND is_active=1 ORDER BY category, name")
+
+    def handle_execute_sql(self, data):
+        """执行SQL查询"""
+        sql = data.get('sql', '').strip()
+        if not sql:
+            return {'success': False, 'error': 'SQL不能为空'}
+
+        # 只允许 SELECT / SHOW / DESCRIBE 语句（安全限制）
+        sql_upper = sql.upper()
+        if not (sql_upper.startswith('SELECT') or sql_upper.startswith('SHOW') or sql_upper.startswith('DESCRIBE')):
+            return {'success': False, 'error': '仅支持 SELECT / SHOW / DESCRIBE 查询'}
+
+        return self.execute_sql_query(sql)
+
+    def execute_sql_query(self, sql):
+        """执行SQL - 通过 <SQL_PROXY_HOST> 上的 SQL 代理服务"""
+        try:
+            import json
+            headers = {'Content-Type': 'application/json'}
+            payload = json.dumps({'sql': sql})
+            response = requests.post(
+                SQL_PROXY_URL,
+                data=payload,
+                headers=headers,
+                timeout=30
+            )
+            # Python 2 兼容：手动解析JSON
+            return json.loads(response.text)
+        except requests.exceptions.ConnectionError as e:
+            return {'success': False, 'error': '无法连接到 SQL 代理服务 (<SQL_PROXY_HOST>:5001)，请确认服务已启动: ' + str(e)}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     def handle_products(self):
         """获取产品列表"""
         try:

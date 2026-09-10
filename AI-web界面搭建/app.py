@@ -787,7 +787,20 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             result = wjr_handler.handle_fixed_apis()
             self.wfile.write(json.dumps(result))
             return
-        
+
+        if self.path == '/wjr-test/bg.jpg':
+            try:
+                self.send_response(200)
+                self.send_header('Content-type', 'image/jpeg')
+                self.end_headers()
+                with open('/home/wangjingru/IMG_4929.jpg', 'rb') as f:
+                    self.wfile.write(f.read())
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write('Error loading image: ' + str(e))
+            return
+
         if self.path == '/wjr-test/api/products':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -827,6 +840,8 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 result = wjr_handler.handle_test(data)
             elif self.path == '/wjr-test/api/run-tests':
                 result = wjr_handler.handle_run_tests(data)
+            elif self.path == '/wjr-test/api/execute-sql':
+                result = wjr_handler.handle_execute_sql(data)
             else:
                 result = {'success': False, 'error': '未知API: ' + self.path}
             
@@ -936,10 +951,10 @@ if __name__ == '__main__':
 
     print '=========================================='
     print 'Wangjingru 的 Kscc Web 服务已启动！'
-    print '访问地址: http://{服务端地址}:' + str(PORT)
+    print '访问地址: http://<APP_HOST>:' + str(PORT)
     print '超时时间: ' + str(TIMEOUT) + ' 秒'
     print '缓存大小: ' + str(CACHE_SIZE) + ' 条'
     print '支持: 多轮对话 | 响应缓存 | 打字机效果 | 消息复制'
-    print 'WJR-Test: http://{服务端地址}:' + str(PORT) + '/wjr-test'
+    print 'WJR-Test: http://<APP_HOST>:' + str(PORT) + '/wjr-test'
     print '=========================================='
     SocketServer.ThreadingTCPServer(('0.0.0.0', PORT), Handler).serve_forever()

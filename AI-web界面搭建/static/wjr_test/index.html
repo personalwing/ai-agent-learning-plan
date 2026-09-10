@@ -7,272 +7,390 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f0c29; color: #e2e8f0; height: 100vh; overflow: hidden; }
-        
+
+        /* 深色背景 + 图片背景 50%透明度，能看清图片 */
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background:
+                url('/wjr-test/bg.jpg') center/cover no-repeat fixed;
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
         .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; }
-        
-        .top-nav { 
-            background: linear-gradient(135deg, #667eea, #764ba2); 
-            padding: 8px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .top-nav h1 { font-size: 16px; font-weight: 600; }
-        .top-nav .badge { background: rgba(255,255,255,0.2); padding: 2px 12px; border-radius: 20px; font-size: 10px; }
-        .top-nav .status-bar { display: flex; align-items: center; gap: 12px; font-size: 11px; }
-        .top-nav .status-dot { 
-            width: 8px; height: 8px; border-radius: 50%; display: inline-block; 
-            background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-        }
-        .top-nav .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        .main-body { display: flex; flex: 1; overflow: hidden; gap: 0; }
-        
-        /* 左侧：固定接口文档（收窄，主要用扫描接口） */
-        .fixed-panel {
-            width: 20%;
-            display: flex;
-            flex-direction: column;
-            background: rgba(17, 24, 39, 0.95);
-            border-right: 1px solid rgba(124, 58, 237, 0.2);
-        }
-        .fixed-panel .panel-header {
-            padding: 8px 14px;
-            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+
+        /* 顶部导航 - 不透底深色背景 */
+        .top-nav {
+            background: #111827;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
-        .fixed-panel .panel-header h2 { font-size: 12px; color: #48bb78; }
-        .fixed-panel .panel-header .count { font-size: 10px; color: #6b7280; }
-        
-        .scanned-panel {
-            width: 40%;
+        .top-nav h1 {
+            color: #e2e8f0;
+            text-shadow: none;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .top-nav .badge {
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            color: #a78bfa;
+        }
+        .top-nav h1 { font-size: 16px; font-weight: 600; background: linear-gradient(135deg, #a78bfa, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .top-nav .badge { background: rgba(124, 58, 237, 0.3); border: 1px solid rgba(124, 58, 237, 0.4); padding: 3px 12px; border-radius: 20px; font-size: 10px; color: #a78bfa; }
+        .top-nav .status-bar { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #9ca3af; }
+        .top-nav .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+            background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
+        .top-nav .status-dot.loading { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.9); } }
+
+        .main-body { display: flex; flex: 1; overflow: hidden; gap: 1px; background: rgba(0, 0, 0, 0.3); }
+
+        /* 面板基础样式 - 全透明让背景透出来 */
+        .fixed-panel, .scanned-panel, .test-panel {
             display: flex;
             flex-direction: column;
-            background: rgba(17, 24, 39, 0.9);
+            background: rgba(17, 24, 39, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 文字加阴影保证可读性 */
+        .fixed-panel, .scanned-panel, .test-panel,
+        .fixed-panel .panel-header h2,
+        .scanned-panel .panel-header h2,
+        .test-panel .panel-header h2,
+        .api-item, .api-item .api-name,
+        .api-item .path-text, .api-item .api-desc {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* 左侧 SQL 面板 */
+        .fixed-panel {
+            width: 20%;
+            border-right: 1px solid rgba(124, 58, 237, 0.15);
+        }
+        .fixed-panel .panel-header {
+            padding: 12px 16px;
+            background: rgba(17, 24, 39, 0.8);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .fixed-panel .panel-header h2 { font-size: 13px; color: #60a5fa; display: flex; align-items: center; gap: 6px; }
+        .fixed-panel .panel-header .count { font-size: 11px; color: #6b7280; background: rgba(96, 165, 250, 0.1); padding: 2px 8px; border-radius: 12px; }
+
+        /* 中间扫描面板 */
+        .scanned-panel {
+            width: 40%;
             border-right: 1px solid rgba(124, 58, 237, 0.15);
         }
         .scanned-panel .panel-header {
-            padding: 8px 14px;
-            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            padding: 12px 16px;
+            background: rgba(17, 24, 39, 0.8);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
-        .scanned-panel .panel-header h2 { font-size: 12px; color: #f59e0b; }
-        .scanned-panel .panel-header .btn-group { display: flex; gap: 4px; }
-        .scanned-panel .panel-header .btn {
-            padding: 3px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 10px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        .btn-primary { background: #667eea; color: #fff; }
-        .btn-primary:hover { background: #5a67d8; }
-        .btn-success { background: #48bb78; color: #fff; }
-        .btn-success:hover { background: #38a169; }
-        
+        .scanned-panel .panel-header h2 { font-size: 13px; color: #f59e0b; display: flex; align-items: center; gap: 6px; }
+        .scanned-panel .panel-header .btn-group { display: flex; gap: 8px; }
+
+        /* 右侧测试面板 */
         .test-panel {
             width: 40%;
-            display: flex;
-            flex-direction: column;
-            background: rgba(17, 24, 39, 0.9);
         }
         .test-panel .panel-header {
-            padding: 8px 14px;
-            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            padding: 12px 16px;
+            background: rgba(17, 24, 39, 0.8);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
-        .test-panel .panel-header h2 { font-size: 12px; color: #a78bfa; }
+        .test-panel .panel-header h2 { font-size: 13px; color: #a78bfa; display: flex; align-items: center; gap: 6px; }
+
+        /* 按钮样式 - 渐变色 + 阴影 */
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.4);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5);
+        }
+
+        .clear-btn {
+            padding: 5px 12px;
+            background: rgba(239, 68, 68, 0.8);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clear-btn:hover { background: #ef4444; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
         
         .api-list-container {
             flex: 1;
             overflow-y: auto;
-            padding: 2px 0;
+            padding: 6px;
         }
-        .api-list-container::-webkit-scrollbar { width: 3px; }
-        .api-list-container::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
-        
+        .api-list-container::-webkit-scrollbar { width: 4px; }
+        .api-list-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        .api-list-container::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7c3aed, #6d28d9); border-radius: 4px; }
+
         .api-item {
-            padding: 5px 10px;
-            border-bottom: 1px solid rgba(55, 65, 81, 0.12);
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
             font-size: 11px;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(124, 58, 237, 0.1);
         }
-        .api-item:hover { background: rgba(124,58,237,0.08); }
-        .api-line1 { display: flex; gap: 4px; align-items: center; }
-        .api-line2 { display: flex; gap: 4px; align-items: center; }
+        .api-item:hover {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+            transform: translateX(2px);
+        }
+        .api-line1 { display: flex; gap: 8px; align-items: center; }
+        .api-line2 { display: flex; gap: 4px; align-items: center; margin-top: 2px; }
         .api-item .method-tag {
-            padding: 1px 5px;
-            border-radius: 2px;
-            font-size: 8px;
-            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
             flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .method-GET { background: #48bb78; color: #fff; }
-        .method-POST { background: #4299e1; color: #fff; }
-        .method-PUT { background: #ed8936; color: #fff; }
-        .method-DELETE { background: #fc8181; color: #fff; }
+        .method-GET { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .method-POST { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+        .method-PUT { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+        .method-DELETE { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
 
         .api-item .api-name {
-            font-weight: 500;
+            font-weight: 600;
             flex: 1;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            color: #e2e8f0;
         }
         .api-item .path-text {
-            font-family: monospace;
-            font-size: 9px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 10px;
             flex: 1;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            color: #9ca3af;
+            color: #94a3b8;
         }
         .api-item .api-desc {
-            font-size: 9px;
-            color: #6b7280;
+            font-size: 10px;
+            color: #64748b;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            margin-top: 2px;
         }
         .api-item .source-tag {
-            font-size: 7px;
-            padding: 1px 5px;
-            border-radius: 8px;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 12px;
             flex-shrink: 0;
+            font-weight: 500;
         }
-        .source-fixed { background: rgba(72,187,120,0.2); color: #48bb78; }
-        .source-scanned { background: rgba(245,158,11,0.2); color: #f59e0b; }
-        .api-item .risk-badge { font-size: 8px; padding: 1px 4px; border-radius: 8px; flex-shrink: 0; }
-        .risk-high { background: rgba(252,129,129,0.2); color: #fc8181; }
+        .source-fixed { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .source-scanned { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .api-item .risk-badge { font-size: 9px; padding: 2px 6px; border-radius: 12px; flex-shrink: 0; font-weight: 600; }
+        .risk-high { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
         .api-item .category-tag {
-            font-size: 7px;
-            padding: 1px 5px;
-            border-radius: 8px;
-            background: rgba(124,58,237,0.15);
-            color: #a78bfa;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(124, 58, 237, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(124, 58, 237, 0.3);
             flex-shrink: 0;
         }
         
-        .hint-text { color: #6b7280; font-size: 11px; text-align: center; padding: 20px 0; }
-        
+        .hint-text { color: #64748b; font-size: 12px; text-align: center; padding: 30px 0; }
+
         .test-body {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 8px 12px;
+            padding: 12px 16px;
             overflow: hidden;
         }
-        .test-body .row { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; align-items: center; }
-        .test-body .row label { color: #9ca3af; font-size: 10px; min-width: 36px; }
+        .test-body .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+        .test-body .row label { color: #94a3b8; font-size: 11px; min-width: 50px; font-weight: 500; }
         .test-body select, .test-body input {
-            padding: 3px 8px;
-            border-radius: 3px;
-            border: 1px solid rgba(55, 65, 81, 0.5);
-            background: rgba(15, 23, 42, 0.8);
-            color: #fff;
-            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-size: 12px;
             outline: none;
+            transition: all 0.2s;
         }
-        .test-body select:focus, .test-body input:focus { border-color: #7c3aed; }
-        .test-body select { min-width: 60px; }
-        .test-body input { flex: 1; min-width: 60px; }
+        .test-body select:focus, .test-body input:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+        .test-body select { min-width: 80px; }
+        .test-body input { flex: 1; min-width: 80px; }
         .action-row { display: none; }
         .action-row.show { display: flex; }
         .action-row select { flex: 1; }
         .test-body textarea {
             width: 100%;
-            padding: 4px 8px;
-            border-radius: 3px;
-            border: 1px solid rgba(55, 65, 81, 0.5);
-            background: rgba(15, 23, 42, 0.8);
-            color: #fff;
-            font-size: 10px;
-            font-family: monospace;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             outline: none;
             resize: vertical;
+            transition: all 0.2s;
+            line-height: 1.5;
         }
-        .test-body textarea:focus { border-color: #7c3aed; }
-        
+        .test-body textarea:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
         .response-wrap {
             flex: 1;
             display: flex;
             flex-direction: column;
             min-height: 0;
-            margin-top: 4px;
+            margin-top: 8px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            overflow: hidden;
         }
         .response-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            margin-bottom: 2px;
+            padding: 8px 12px;
+            background: rgba(17, 24, 39, 0.6);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
         }
-        .response-header .label { color: #9ca3af; font-size: 10px; }
+        .response-header .label { color: #94a3b8; font-size: 11px; font-weight: 500; }
         .copy-resp-btn {
-            padding: 2px 10px;
-            border: 1px solid rgba(124,58,237,0.3);
-            border-radius: 3px;
-            background: rgba(124,58,237,0.1);
-            color: #a78bfa;
-            font-size: 10px;
+            padding: 4px 12px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 6px;
+            background: rgba(124, 58, 237, 0.15);
+            color: #c4b5fd;
+            font-size: 11px;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .copy-resp-btn:hover { background: rgba(124,58,237,0.25); }
-        .copy-resp-btn.copied { background: rgba(34,197,94,0.2); color: #22c55e; border-color: #22c55e; }
+        .copy-resp-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            color: #e9d5ff;
+            border-color: rgba(124, 58, 237, 0.5);
+        }
+        .copy-resp-btn.copied {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
         .response-area {
             flex: 1;
-            background: rgba(15, 23, 42, 0.8);
-            border-radius: 3px;
-            padding: 6px 10px;
-            font-family: monospace;
-            font-size: 10px;
+            background: rgba(15, 23, 42, 0.3);
+            padding: 10px 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
             white-space: pre-wrap;
             overflow: auto;
-            border: 1px solid rgba(55, 65, 81, 0.2);
-            min-height: 120px;
+            min-height: 100px;
+            color: #e2e8f0;
+            line-height: 1.6;
         }
-        .response-area .hint { color: #6b7280; font-size: 10px; }
-        
+        .response-area .hint { color: #64748b; font-size: 12px; }
+
         .stats-row {
             display: flex;
-            gap: 10px;
-            font-size: 10px;
-            color: #9ca3af;
-            padding: 2px 0;
+            gap: 16px;
+            font-size: 11px;
+            color: #94a3b8;
+            padding: 8px 0;
             flex-shrink: 0;
+            margin-bottom: 8px;
         }
         .stats-row span { color: #a78bfa; font-weight: 600; }
-        
+
         .send-btn {
-            padding: 3px 14px;
+            padding: 6px 18px;
             border: none;
-            border-radius: 3px;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border-radius: 6px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
             color: #fff;
             font-weight: 600;
-            font-size: 11px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+        .send-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);
+            transform: translateY(-1px);
+        }
             cursor: pointer;
             transition: all 0.3s;
         }
@@ -302,7 +420,13 @@
             border: 1px solid rgba(55,65,81,0.15);
         }
         .default-headers .hl { color: #a78bfa; }
-        
+
+        /* 全局滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8b5cf6, #6d28d9); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #7c3aed, #5b21b6); }
+
         @media (max-width: 1024px) {
             .main-body { flex-direction: column; }
             .fixed-panel, .scanned-panel, .test-panel { width: 100%; max-height: 33vh; border-right: none; border-bottom: 1px solid rgba(124,58,237,0.15); }
@@ -329,19 +453,26 @@
     </div>
     
     <div class="main-body">
-        <!-- 左侧：固定接口文档 -->
-        <div class="fixed-panel">
+        <!-- 左侧：MySQL 查询 -->
+        <div class="fixed-panel" style="width:40%">
             <div class="panel-header">
-                <h2>📄 固定接口 (文档)</h2>
-                <span class="count" id="fixedCountLabel">0 个</span>
+                <h2>🗄️ MySQL 查询</h2>
+                <span class="count">3307/wjr_trove</span>
             </div>
-            <div class="api-list-container" id="fixedApiList">
-                <div class="hint-text">加载固定接口文档...</div>
+            <div class="sql-panel" style="padding:12px;display:flex;flex-direction:column;height:calc(100% - 45px);gap:10px">
+                <textarea id="sqlInput" rows="4" style="width:100%;flex:1;background:rgba(15,23,42,0.5);border:1px solid rgba(139,92,246,0.25);color:#e2e8f0;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;padding:12px;border-radius:8px;resize:none;outline:none;transition:all 0.2s;line-height:1.5" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(139,92,246,0.25)';this.style.boxShadow='none'">SELECT name, status, created FROM flows ORDER BY created DESC LIMIT 10</textarea>
+                <div style="display:flex;gap:10px">
+                    <button class="btn btn-primary" onclick="executeSQL()" style="flex:1">▶ 执行查询</button>
+                    <button class="btn" onclick="showTables()" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;box-shadow:0 2px 8px rgba(16,185,129,0.3)" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">📋 所有表</button>
+                </div>
+                <div id="sqlResult" style="flex:1;overflow:auto;background:rgba(15,23,42,0.3);border-radius:8px;padding:10px;font-size:11px;font-family:'JetBrains Mono','Fira Code',monospace;border:1px solid rgba(139,92,246,0.2);position:relative">
+                    <span class="hint" style="color:#64748b">结果将显示在这里...</span>
+                </div>
             </div>
         </div>
-        
+
         <!-- 中间：KSCC扫描接口 -->
-        <div class="scanned-panel">
+        <div class="scanned-panel" style="width:25%">
             <div class="panel-header">
                 <h2>🔍 扫描接口 (KSCC AI)</h2>
                 <div class="btn-group">
@@ -355,7 +486,7 @@
         </div>
         
         <!-- 右侧：请求/响应 -->
-        <div class="test-panel">
+        <div class="test-panel" style="width:35%">
             <div class="panel-header">
                 <h2>🚀 请求测试</h2>
                 <button class="clear-btn" onclick="clearResults()">清空</button>
@@ -384,7 +515,7 @@
                 </div>
                 <div class="row" style="margin-bottom:2px;">
                     <label>Headers:</label>
-                    <textarea id="requestHeaders" rows="1" placeholder='{"X-Auth-Project-Id":"<PROJECT_ID>"}' style="height:20px;font-size:10px;"></textarea>
+                    <textarea id="requestHeaders" rows="2" placeholder='{"X-Auth-Project-Id":"<PROJECT_ID>"}' style="height:40px;font-size:11px;"></textarea>
                 </div>
                 <div class="row action-row" id="actionRow" style="margin-bottom:2px;">
                     <label>action:</label>
@@ -408,6 +539,7 @@
                 <div class="response-wrap">
                     <div class="response-header">
                         <span class="label">📋 响应</span>
+                        <input type="text" id="respSearch" placeholder="🔍 搜索响应..." oninput="filterResponse()" style="flex:1;margin:0 8px;padding:3px 8px;background:#1a1d29;color:#e6edf3;border:1px solid #333a4d;border-radius:4px;font-size:11px;outline:none;">
                         <button class="copy-resp-btn" id="copyRespBtn" onclick="copyResponse()">复制响应</button>
                     </div>
                     <div class="response-area" id="responseArea"><span class="hint">等待请求...</span></div>
@@ -429,56 +561,118 @@
 // ============================================================
 // 数据
 // ============================================================
-var fixedApis = [];
 var scannedApis = [];
 var testResults = [];
-var apiRegistry = {};   // id -> apiObj，供 selectAPI 取完整对象
+var apiRegistry = {};
 
-// 加载固定接口
-function loadFixedApis() {
-    fetch('/wjr-test/api/fixed-apis')
+// ============================================================
+// MySQL 查询功能
+// ============================================================
+function showTables() {
+    document.getElementById('sqlInput').value = 'SHOW TABLES';
+    executeSQL();
+}
+
+function executeSQL() {
+    var sql = document.getElementById('sqlInput').value.trim();
+    if (!sql) {
+        document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">请输入 SQL 语句</span>';
+        return;
+    }
+
+    document.getElementById('sqlResult').innerHTML = '<span style="color:#f59e0b">⏳ 执行中...</span>';
+
+    fetch('/wjr-test/api/execute-sql', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({sql: sql})
+    })
     .then(function(resp) { return resp.json(); })
     .then(function(result) {
         if (result.success) {
-            fixedApis = result.data || [];
-            renderFixedApis();
-            document.getElementById('fixedCount').textContent = fixedApis.length;
-            document.getElementById('fixedCountLabel').textContent = fixedApis.length + ' 个';
+            renderSQLResult(result.data);
+        } else {
+            document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">❌ ' + (result.error || '查询失败') + '</span>';
         }
     })
-    ['catch'](function(e) { console.error('加载固定接口失败:', e); });
+    ['catch'](function(e) {
+        document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">❌ 请求失败: ' + e.message + '</span>';
+    });
 }
 
-function renderFixedApis() {
-    var container = document.getElementById('fixedApiList');
-    if (fixedApis.length === 0) {
-        container.innerHTML = '<div class="hint-text">暂无固定接口</div>';
+function renderSQLResult(data) {
+    var container = document.getElementById('sqlResult');
+    if (!data || data.length === 0) {
+        container.innerHTML = '<span style="color:#6b7280">✅ 执行成功，无返回数据</span>';
         return;
     }
-    var html = '';
-    for (var i = 0; i < fixedApis.length; i++) {
-        var api = fixedApis[i];
-        var regId = 'fixed_' + i;
-        apiRegistry[regId] = api;
-        var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
-            '<span class="risk-badge risk-high">高</span>' : '';
-        var category = api.category ? '<span class="category-tag">' + api.category.replace('接口', '') + '</span>' : '';
-        var desc = api.description ? '<div class="api-desc" title="' + api.description + '">' + api.description + '</div>' : '';
-        html += '<div class="api-item" onclick="selectAPI(\'' + api.path.replace(/'/g, "\\'") + '\', \'' + api.method + '\', apiRegistry[\'' + regId + '\'])">' +
-            '<div class="api-line1">' +
-            '<span class="method-tag method-' + api.method + '">' + api.method + '</span>' +
-            '<span class="api-name" title="' + (api.name || '') + '">' + (api.name || api.path.split('/').pop() || '') + '</span>' +
-            category +
-            '<span class="source-tag source-fixed">文档</span>' +
-            risk +
-            '</div>' +
-            '<div class="api-line2">' +
-            '<span class="path-text" title="' + api.path + '">' + api.path.replace(/{tenant_id}/g, '{t}') + '</span>' +
-            '</div>' +
-            desc +
-        '</div>';
+
+    // 复制按钮
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(139,92,246,0.15)">';
+    html += '<span style="color:#34d399;font-weight:500">✅ 返回 ' + data.length + ' 行</span>';
+    html += '<button onclick="copySQLResult()" style="padding:4px 12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.35);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500;transition:all 0.2s" onmouseover="this.style.background=\'rgba(139,92,246,0.3)\'" onmouseout="this.style.background=\'rgba(139,92,246,0.2)\'">📋 复制结果</button>';
+    html += '</div>';
+    html += '<table id="sqlResultTable" style="width:100%;border-collapse:collapse;font-size:11px;border-radius:6px;overflow:hidden">';
+
+    // 表头
+    var cols = Object.keys(data[0]);
+    html += '<tr style="background:linear-gradient(135deg,rgba(139,92,246,0.4),rgba(124,58,237,0.4))">';
+    for (var i = 0; i < cols.length; i++) {
+        html += '<th style="padding:8px 10px;text-align:left;color:#e9d5ff;font-weight:600;border-bottom:1px solid rgba(139,92,246,0.3)">' + cols[i] + '</th>';
     }
+    html += '</tr>';
+
+    // 数据行
+    for (var r = 0; r < data.length; r++) {
+        var row = data[r];
+        html += '<tr style="background:' + (r % 2 === 0 ? 'rgba(15,23,42,0.3)' : 'rgba(30,41,59,0.3)') + ';transition:all 0.15s" onmouseover="this.style.background=\'rgba(139,92,246,0.1)\'" onmouseout="this.style.background=\'' + (r % 2 === 0 ? 'rgba(15,23,42,0.3)' : 'rgba(30,41,59,0.3)') + '\'">';
+        for (var c = 0; c < cols.length; c++) {
+            var val = row[cols[c]];
+            var display = val === null ? '<span style="color:#64748b;font-style:italic">NULL</span>' : String(val).substring(0, 100);
+            html += '<td style="padding:6px 10px;color:#e2e8f0;border-bottom:1px solid rgba(75,85,99,0.2)">' + display + '</td>';
+        }
+        html += '</tr>';
+    }
+
+    html += '</table>';
     container.innerHTML = html;
+}
+
+function copySQLResult() {
+    var table = document.getElementById('sqlResultTable');
+    if (!table) return;
+
+    var text = '';
+    var rows = table.rows;
+    for (var i = 0; i < rows.length; i++) {
+        var cells = rows[i].cells;
+        var rowText = [];
+        for (var j = 0; j < cells.length; j++) {
+            rowText.push(cells[j].textContent);
+        }
+        text += rowText.join('\t') + '\n';
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('✅ 已复制到剪贴板');
+        });
+    } else {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ 已复制到剪贴板');
+    }
+}
+
+// 回车执行
+if (document.getElementById('sqlInput')) {
+    document.getElementById('sqlInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) executeSQL();
+    });
 }
 
 // ============================================================
@@ -628,7 +822,8 @@ function copyText(text, btnId) {
 }
 function copyResponse() {
     var area = document.getElementById('responseArea');
-    copyText(area.innerText || area.textContent, 'copyRespBtn');
+    // 优先复制完整原文（搜索过滤时界面只显示了匹配行）
+    copyText(lastResponseText || area.innerText || area.textContent, 'copyRespBtn');
 }
 function copyCurl() {
     copyText(document.getElementById('curlArea').innerText || document.getElementById('curlArea').textContent, 'copyCurlBtn');
@@ -648,7 +843,7 @@ function buildCurl() {
     if (!path) { document.getElementById('curlArea').innerHTML = '<span class="hint">填写参数后生成 curl...</span>'; return; }
 
     var realPath = path.replace(/{tenant_id}/g, tenantId);
-    // page -> offset，与后端 handler 保持一致
+    // page -> offset
     var qs = params.replace(/^\?/, '');
     if (qs) {
         var parts = qs.split('&');
@@ -664,19 +859,27 @@ function buildCurl() {
     }
     var url = 'http://<SQL_PROXY_HOST>:9777' + realPath + (qs ? '?' + qs : '');
 
-    // 默认 header（与 handler.py DEFAULT_HEADERS 一致）
+    // 默认 header
     var defaultHeaders = {
         'X-Auth-Project-Id': '<PROJECT_ID>',
         'X-Auth-Token': '<AUTH_TOKEN>',
         'X-KSC-APPLICATION-TOKEN': '<APPLICATION_TOKEN>',
         'X-KSC-APPLICATION-NAME': 'ktrove',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Accept': 'application/json'
     };
+    // 只有非 GET 请求才加 Content-Type
+    if (method !== 'GET') {
+        defaultHeaders['Content-Type'] = 'application/json';
+    }
     try { var extra = headersStr ? JSON.parse(headersStr) : {}; } catch (e) { var extra = {}; }
     for (var k in extra) { defaultHeaders[k] = extra[k]; }
 
-    var cmd = 'curl -X ' + method;
+    // 构建 curl 命令
+    var cmd = 'curl';
+    // GET 请求不需要 -X
+    if (method !== 'GET') {
+        cmd += ' -X ' + method;
+    }
     for (var k in defaultHeaders) {
         cmd += ' \\\n  -H ' + escapeShell(k + ': ' + defaultHeaders[k]);
     }
@@ -703,6 +906,7 @@ function sendRequest() {
     updateStatus('请求中...', 'loading');
     var area = document.getElementById('responseArea');
     area.textContent = '⏳ 请求中...';
+    document.getElementById('respSearch').value = '';
     buildCurl();
 
     var reqBody = {
@@ -723,21 +927,78 @@ function sendRequest() {
     .then(function(result) {
         if (result.success) {
             var data = result.data;
-            area.textContent = JSON.stringify(data, null, 2);
+            setResponse(JSON.stringify(data, null, 2));
             document.getElementById('responseTime').textContent = data.elapsed + 's';
             updateStatus('完成 (' + data.status_code + ')', 'ready');
             bumpTestCount(data.status_code < 400);
         } else {
-            area.textContent = '❌ 错误: ' + result.error;
+            setResponse('❌ 错误: ' + result.error);
             updateStatus('请求失败', 'error');
             bumpTestCount(false);
         }
     })
     ['catch'](function(e) {
-        area.textContent = '❌ 异常: ' + e.message;
+        setResponse('❌ 异常: ' + e.message);
         updateStatus('异常', 'error');
         bumpTestCount(false);
     });
+}
+
+// ============================================================
+// 响应搜索：保存原文，按关键字过滤并高亮
+// ============================================================
+var lastResponseText = '';
+
+function setResponse(text) {
+    lastResponseText = text || '';
+    filterResponse();
+}
+
+function resetResponse(hintHtml) {
+    lastResponseText = '';
+    document.getElementById('respSearch').value = '';
+    document.getElementById('responseArea').innerHTML = hintHtml || '<span class="hint">等待请求...</span>';
+}
+
+function filterResponse() {
+    var area = document.getElementById('responseArea');
+    if (!lastResponseText) { return; }
+    var kw = document.getElementById('respSearch').value;
+    if (!kw) {
+        area.textContent = lastResponseText;
+        return;
+    }
+    var lower = lastResponseText.toLowerCase();
+    var kwl = kw.toLowerCase();
+    var lines = lastResponseText.split('\n');
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().indexOf(kwl) !== -1) {
+            out.push(highlightLine(lines[i], kw));
+        }
+    }
+    var esc = function(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    if (out.length === 0) {
+        area.innerHTML = '<span class="hint">无匹配行 (' + lines.length + ' 行中搜索 "' + esc(kw) + '")</span>';
+    } else {
+        area.innerHTML = out.join('\n');
+    }
+}
+
+function highlightLine(line, kw) {
+    var esc = function(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var lower = line.toLowerCase();
+    var kwl = kw.toLowerCase();
+    var result = '';
+    var idx = 0;
+    while (true) {
+        var pos = lower.indexOf(kwl, idx);
+        if (pos === -1) { result += esc(line.slice(idx)); break; }
+        result += esc(line.slice(idx, pos));
+        result += '<mark style="background:#f8b400;color:#0d1117;border-radius:2px;">' + esc(line.slice(pos, pos + kw.length)) + '</mark>';
+        idx = pos + kw.length;
+    }
+    return result;
 }
 
 function bumpTestCount(passed) {
@@ -802,7 +1063,7 @@ function runAllTests() {
                     summary += '  ... 还有 ' + (result.data.summary.errors.length - 5) + ' 个失败\n';
                 }
             }
-            area.textContent = summary;
+            setResponse(summary);
         }
     })
     ['catch'](function(e) {
@@ -814,14 +1075,14 @@ function clearResults() {
     document.getElementById('passedTests').textContent = '0';
     document.getElementById('failedTests').textContent = '0';
     document.getElementById('totalTests').textContent = '0';
-    document.getElementById('responseArea').innerHTML = '<span class="hint">等待请求...</span>';
+    resetResponse();
 }
 
 // ============================================================
 // 回车快捷键
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    loadFixedApis();
+    loadFixedApis = function(){};
     buildCurl();
 
     var apiPath = document.getElementById('apiPath');
