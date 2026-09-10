@@ -18,7 +18,7 @@
             overflow: hidden;
         }
 
-        .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; }
+        .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; min-width: 900px; }
 
         /* 顶部导航 - 不透底深色背景 */
         .top-nav {
@@ -53,13 +53,24 @@
 
         .main-body { display: flex; flex: 1; overflow: hidden; gap: 1px; background: rgba(0, 0, 0, 0.3); }
 
-        /* 面板基础样式 - 全透明让背景透出来 */
+        /* 面板基础样式 - 使用 flex-basis 替代固定宽度，更灵活 */
         .fixed-panel, .scanned-panel, .test-panel {
             display: flex;
             flex-direction: column;
             background: rgba(17, 24, 39, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 280px; /* 防止内容被挤压 */
         }
+
+        /* 三栏布局：使用 flex 比例而非固定百分比 */
+        .fixed-panel { flex: 1.2; }
+        .scanned-panel { flex: 0.8; }
+        .test-panel { flex: 1.0; }
+
+        /* 旧的选择器保持兼容，但会被行内样式覆盖，这里移除硬编码宽度 */
+        .fixed-panel[style*="width:40%"] { width: auto !important; flex: 1.2; }
+        .scanned-panel[style*="width:25%"] { width: auto !important; flex: 0.8; }
+        .test-panel[style*="width:35%"] { width: auto !important; flex: 1.0; }
 
         /* 文字加阴影保证可读性 */
         .fixed-panel, .scanned-panel, .test-panel,
@@ -427,12 +438,42 @@
         ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8b5cf6, #6d28d9); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #7c3aed, #5b21b6); }
 
-        @media (max-width: 1024px) {
-            .main-body { flex-direction: column; }
-            .fixed-panel, .scanned-panel, .test-panel { width: 100%; max-height: 33vh; border-right: none; border-bottom: 1px solid rgba(124,58,237,0.15); }
+        /* 响应式布局 */
+        @media (max-width: 1400px) {
+            /* 中等屏幕：三栏保持但适当调整比例 */
+            .fixed-panel { flex: 1.0; }
+            .scanned-panel { flex: 0.7; }
+            .test-panel { flex: 1.0; }
         }
+
+        @media (max-width: 1100px) {
+            /* 小屏幕：三栏保持但最小宽度限制 */
+            .fixed-panel, .scanned-panel, .test-panel {
+                min-width: 250px;
+            }
+            /* 缩小字体和间距 */
+            .api-item { padding: 8px 10px; font-size: 10px; }
+            .api-item .api-name { font-size: 10px; }
+            .panel-header h2 { font-size: 12px; }
+        }
+
+        @media (max-width: 900px) {
+            /* 更小的屏幕：改为垂直堆叠 */
+            .main-body { flex-direction: column; overflow-y: auto; }
+            .fixed-panel, .scanned-panel, .test-panel {
+                width: 100% !important;
+                flex: none !important;
+                min-width: auto;
+                max-height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(124,58,237,0.15);
+            }
+            .test-panel { max-height: 50vh; }
+        }
+
         @media (max-width: 640px) {
-            .top-nav { flex-wrap: wrap; gap: 4px; }
+            .top-nav { flex-wrap: wrap; gap: 4px; padding: 8px 12px; }
+            .top-nav h1 { font-size: 14px; }
             .top-nav .status-bar { font-size: 9px; gap: 6px; }
         }
     </style>
