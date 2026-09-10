@@ -3,7 +3,6 @@ import SimpleHTTPServer
 import SocketServer
 import subprocess
 import json
-import signal
 import socket
 import threading
 import os
@@ -28,9 +27,58 @@ CACHE_SIZE = 50
 response_cache = {}
 cache_timestamp = {}
 
+
 def get_cache_key(msg):
     """生成缓存key"""
-    return hashlib.md5(msg.encode('utf-8')).hexdigest()
+    # Python 2 下 msg 可能是 unicode，先统一成 utf-8 bytes
+    if isinstance(msg, unicode):
+        msg = msg.encode('utf-8')
+    return hashlib.md5(msg).hexdigest()
+
+
+def is_cacheable(msg):
+    """
+    判断这个问题是否允许走缓存。
+
+    原则：
+      - 以 '/' 开头的命令（如 /wjr、/git、/sql）一律不缓存 —— 它们是状态/操作类
+      - 含状态查询、写操作关键词的一律不缓存
+      - 太短的问题不缓存（容易误判）
+    其余纯问答类才允许缓存。
+    """
+    if not msg:
+        return False
+    # Python 2 下 msg 可能是 unicode，先统一成 utf-8 bytes，
+    # 否则 `k in low`（bytes in unicode）会触发 ascii 解码报错
+    if isinstance(msg, unicode):
+        msg = msg.encode('utf-8')
+    msg = msg.strip()
+
+    # 命令类，一律不缓存
+    if msg.startswith('/'):
+        return False
+
+    # 状态 / 写操作类关键词，一律不缓存
+    dangerous_keywords = (
+        '提交', '推送', 'commit', 'push', 'pull', 'merge',
+        '状态', 'status', 'diff', 'log', 'git',
+        '执行', 'run', 'exec', 'sql', 'mongo', 'redis',
+        '删除', 'drop', 'delete', 'remove', 'reset', 'clear',
+        '创建', 'create', '插入', 'insert', 'update', '修改',
+        '部署', 'deploy', '重启', 'restart', 'kill',
+        '查询', 'select', 'find', 'show',
+    )
+    low = msg.lower()
+    for k in dangerous_keywords:
+        if k in low:
+            return False
+
+    # 太短的不缓存
+    if len(msg) < 4:
+        return False
+
+    return True
+
 
 def get_cached_response(msg):
     """获取缓存响应"""
@@ -45,6 +93,7 @@ def get_cached_response(msg):
                 del cache_timestamp[key]
     return None
 
+
 def set_cached_response(msg, reply):
     """设置缓存响应"""
     key = get_cache_key(msg)
@@ -55,9 +104,10 @@ def set_cached_response(msg, reply):
                 del response_cache[oldest_key]
             if oldest_key in cache_timestamp:
                 del cache_timestamp[oldest_key]
-    
+
     response_cache[key] = reply
     cache_timestamp[key] = time.time()
+
 
 HTML = '''
 <!DOCTYPE html>
@@ -447,7 +497,7 @@ HTML = '''
     </div>
     
     <div id="chat">
-        <div class="msg ai markdown-body">👋 你好！支持**多轮对话**和**响应缓存**。<br>⏱ 响应约 5-6 秒<br>💡 悬停消息可复制内容</div>
+        <div class="msg ai markdown-body">👋 你好！支持**多轮对话**和**响应缓存**。<br>⏱ 响应约 5-6 秒<br>💡 悬停消息可复制内容<br>🔒 命令类 / 状态查询 / 写操作不走缓存，始终实时</div>
     </div>
     
     <div class="input-area">
@@ -459,7 +509,7 @@ HTML = '''
     <div class="footer">
         <div class="footer-info">
             <span>⚡ 缓存: <span id="cacheStatus">0</span></span>
-            <span class="badge">v2.0</span>
+            <span class="badge">v2.1</span>
         </div>
         <div class="footer-info">
             <span>⏱ <span id="responseTime">-</span></span>
@@ -498,7 +548,7 @@ function copyMessage(text, btn) {
                 btn.textContent = '📋 复制';
                 btn.classList.remove('copied');
             }, 2000);
-        })['catch'](function() {
+        }).catch(function() {
             fallbackCopy(plainText, btn);
         });
     } else {
@@ -710,7 +760,7 @@ function send() {
         
         addMsgWithTyping(d.reply || '无响应', 'ai');
     })
-    ['catch'](function(e) {
+    .catch(function(e) {
         removeLoading();
         clearTimeout(timeoutId);
         updateStatus('error', '错误');
@@ -726,26 +776,29 @@ function send() {
 </html>
 '''
 
+
 def get_session_id():
     if os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, 'r') as f:
             return f.read().strip()
     return None
 
+
 def save_session_id(session_id):
     with open(SESSION_FILE, 'w') as f:
         f.write(session_id)
 
+
 class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     # 增加超时处理，防止Broken pipe
     timeout = 300
-    
+
     def log_error(self, format, *args):
         # 忽略 Broken pipe 错误
         if 'Broken pipe' in format % args:
             return
         SimpleHTTPServer.SimpleHTTPRequestHandler.log_error(self, format, *args)
-    
+
     def handle_one_request(self):
         try:
             SimpleHTTPServer.SimpleHTTPRequestHandler.handle_one_request(self)
@@ -756,7 +809,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         except Exception as e:
             if 'Broken pipe' not in str(e):
                 raise
-    
+
     def do_GET(self):
         # ============ WJR-Test 路由 ============
         if self.path == '/wjr-test' or self.path == '/wjr-test/':
@@ -771,7 +824,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write('Error loading page: ' + str(e))
             return
-        
+
         if self.path == '/wjr-test/api/discover':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -779,7 +832,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             result = wjr_handler.handle_discover()
             self.wfile.write(json.dumps(result))
             return
-        
+
         if self.path == '/wjr-test/api/fixed-apis':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -808,14 +861,14 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             result = wjr_handler.handle_products()
             self.wfile.write(json.dumps(result))
             return
-        
+
         if self.path.startswith('/wjr-test'):
             self.send_response(404)
             self.end_headers()
             self.wfile.write('Not Found')
             return
         # ============ WJR-Test 路由结束 ============
-        
+
         # ============ 原有逻辑 ============
         self.send_response(200)
         self.send_header('Content-type', 'text/html; charset=utf-8')
@@ -831,11 +884,11 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 data = json.loads(body) if body else {}
             except Exception as e:
                 data = {}
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            
+
             if self.path == '/wjr-test/api/test':
                 result = wjr_handler.handle_test(data)
             elif self.path == '/wjr-test/api/run-tests':
@@ -844,7 +897,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 result = wjr_handler.handle_execute_sql(data)
             else:
                 result = {'success': False, 'error': '未知API: ' + self.path}
-            
+
             try:
                 self.wfile.write(json.dumps(result))
             except Exception as e:
@@ -852,7 +905,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 pass
             return
         # ============ WJR-Test API 路由结束 ============
-        
+
         # ============ 原有 /clear 逻辑 ============
         if self.path == '/clear':
             if os.path.exists(SESSION_FILE):
@@ -864,7 +917,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({'status': 'ok'}))
             return
-        
+
         # ============ 原有 /chat 逻辑 ============
         if self.path == '/chat':
             length = int(self.headers.getheader('Content-Length', 0))
@@ -872,13 +925,25 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             data = json.loads(body)
             msg = data.get('message', '')
 
-            cached_reply = get_cached_response(msg)
+            # Python 2 下 json.loads 得到的是 unicode，含中文时
+            # 与 bytes 字面量做 in / replace / % 运算会触发 ascii 解码报错。
+            # 入口处统一转成 utf-8 bytes，后面全程用 bytes 处理。
+            if isinstance(msg, unicode):
+                msg = msg.encode('utf-8')
+
+            cached_reply = None
             from_cache = False
-            
+
+            # 只有"安全"的问题才允许走缓存：
+            # 命令类（/wjr 等）、状态查询、写操作一律不走，保证实时
+            if is_cacheable(msg):
+                cached_reply = get_cached_response(msg)
+
             if cached_reply:
                 from_cache = True
                 reply = cached_reply
-                print '使用缓存响应: %s...' % msg[:30]
+                # 注意：不要在这里 print 含中文的 msg，Python 2 下会触发
+                # UnicodeDecodeError，导致整个请求挂掉、前端 Failed to fetch
             else:
                 try:
                     safe_msg = msg.replace("'", "'\\''")
@@ -897,12 +962,14 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     # ThreadingTCPServer 下 /chat 在子线程执行会抛
                     # "signal only works in main thread"）
                     timed_out = [False]
+
                     def _kill_on_timeout():
                         timed_out[0] = True
                         try:
                             proc.kill()
                         except Exception:
                             pass
+
                     timer = threading.Timer(TIMEOUT, _kill_on_timeout)
                     timer.start()
 
@@ -910,23 +977,25 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                         out, err = proc.communicate()
                         timer.cancel()
                         if timed_out[0]:
-                            reply = "⏰ 请求超时（%d秒）" % TIMEOUT
+                            reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
                         elif proc.returncode == 0:
                             reply = out.decode('utf-8').strip()
                             if not reply:
-                                reply = "（kscc 没有返回内容）"
-                            set_cached_response(msg, reply)
+                                reply = u"（kscc 没有返回内容）"
+                            # 只有安全的问题、且回复正常时才写入缓存
+                            if is_cacheable(msg) and not reply.startswith(u'错误') and not reply.startswith(u'异常') and not reply.startswith(u'⏰'):
+                                set_cached_response(msg, reply)
                         else:
-                            reply = "错误: " + err.decode('utf-8').strip()
+                            reply = u"错误: " + err.decode('utf-8').strip()
                     except Exception:
                         timer.cancel()
                         try:
                             proc.kill()
                         except Exception:
                             pass
-                        reply = "⏰ 请求超时（%d秒）" % TIMEOUT
+                        reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
                 except Exception as e:
-                    reply = "异常: " + str(e)
+                    reply = u"异常: " + unicode(e)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -938,11 +1007,12 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 'cache_count': len(response_cache)
             }))
             return
-        
+
         # 其他POST请求返回404
         self.send_response(404)
         self.end_headers()
         self.wfile.write('Not Found')
+
 
 if __name__ == '__main__':
     # 用 ThreadingTCPServer，避免 /chat 的 docker exec 长耗时阻塞 wjr-test 测试请求
