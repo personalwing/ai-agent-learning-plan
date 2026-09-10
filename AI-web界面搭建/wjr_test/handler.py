@@ -54,7 +54,7 @@ FIXED_APIS = [
     {"path": "/v1.0/{tenant_id}/backup-resources/{cluster_id}/list_cluster_backup_records", "method": "GET", "category": "分片集群接口", "name": "查询分片集群备份列表", "description": "查询分片集群实例的备份记录列表"},
 ]
 
-# ktrove 后端实测可用的 MongoDB 路由表（对 <SQL_PROXY_HOST>:9777 探测确认，2026-09-09）
+# ktrove 后端实测可用的 MongoDB 路由表（对 KSCC 服务地址探测确认）
 # 这些是 /wjr-test 扫描栏应展示的真实接口，替代原先探测不存在网关路径后回退的假数据。
 SCANNED_APIS = [
     # ==================== 副本集 repset ====================
@@ -171,7 +171,7 @@ class WJRTestHandler:
     def __init__(self):
         # 直连 ktrove-api 后端（<SQL_PROXY_HOST> 宿主 9777 端口），不再经 <APP_HOST>:8888 的 /api/ktrove 代理
         # （该代理路由在 app.py 中并不存在，会导致请求打回自己/404 并最终超时）
-        self.kscc_base_url = "http://<SQL_PROXY_HOST>:9777"
+        self.kscc_base_url = "http://<KSCC_HOST>:9777"
         self.ktrove_proxy_path = ""
         self.scanner = APIScanner()
         self.runner = TestRunner()
