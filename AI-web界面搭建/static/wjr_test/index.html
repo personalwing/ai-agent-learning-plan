@@ -534,8 +534,8 @@
             </div>
             <div class="test-body">
                 <div class="default-headers" id="defaultHeaders">
-                    <span class="hl">X-Auth-Project-Id:</span> <PROJECT_ID> &nbsp;
-                    <span class="hl">X-Auth-Token:</span> <AUTH_TOKEN> &nbsp;
+                    <span class="hl">X-Auth-Project-Id:</span> &lt;PROJECT_ID&gt; &nbsp;
+                    <span class="hl">X-Auth-Token:</span> &lt;AUTH_TOKEN&gt; &nbsp;
                     <span class="hl">X-KSC-APPLICATION-NAME:</span> ktrove
                 </div>
                 
@@ -898,7 +898,7 @@ function buildCurl() {
         if (page !== null && isNaN(page) === false) { rest.push('offset=' + Math.max(0, (page - 1) * limit)); }
         qs = rest.join('&');
     }
-    var url = 'http://<SQL_PROXY_HOST>:9777' + realPath + (qs ? '?' + qs : '');
+    var url = 'http://<KSCC_HOST>:9777' + realPath + (qs ? '?' + qs : '');
 
     // 默认 header
     var defaultHeaders = {
