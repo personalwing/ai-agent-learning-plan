@@ -130,6 +130,13 @@ SCANNED_APIS = [
     {"path": "/v1.0/{tenant_id}/backup-records/{record_id}", "method": "DELETE", "category": "公共", "name": "删除备份记录", "description": "按备份记录 ID 删除指定备份"},
 ]
 
+# ============ SQL 元数据缓存（供 /wjr-test/api/sql-meta 使用） ============
+# 模块级缓存，跨请求共享。避免前端每次按键都打 SQL 代理。
+_SQL_META_CACHE = {'data': None, 'ts': 0}
+_SQL_META_TTL = 300  # 5 分钟
+# ======================================================================
+
+
 class WJRTestHandler:
     """WJR测试处理器 - 处理Ktrove API测试请求"""
 
@@ -347,6 +354,97 @@ class WJRTestHandler:
             return {'success': False, 'error': '无法连接到 SQL 代理服务 (<SQL_PROXY_HOST>:5001)，请确认服务已启动: ' + str(e)}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    def handle_sql_meta(self):
+        """获取 SQL 元数据（表名 + 字段名），供前端输入框自动补全。
+
+        返回结构：
+        {
+          "success": true,
+          "tables": ["user", "order", ...],
+          "columns": {"user": ["id","name",...], "order": [...]},
+          "cached": true/false,
+          "ts": 1712345678.9
+        }
+
+        用模块级 _SQL_META_CACHE 缓存 5 分钟，避免前端每次按键都打 SQL 代理。
+        出错时返回空表结构，不影响前端补全功能降级。
+        """
+        now = time.time()
+        cache = _SQL_META_CACHE
+        if cache['data'] and (now - cache['ts']) < _SQL_META_TTL:
+            data = dict(cache['data'])
+            data['cached'] = True
+            data['ts'] = cache['ts']
+            return data
+
+        # 只查当前库的表/字段，不动数据
+        sql = ("SELECT TABLE_NAME, COLUMN_NAME "
+               "FROM information_schema.COLUMNS "
+               "WHERE TABLE_SCHEMA = DATABASE() "
+               "ORDER BY TABLE_NAME, ORDINAL_POSITION")
+
+        result = self.execute_sql_query(sql)
+
+        tables = []
+        columns = {}
+        error_msg = None
+
+        if not isinstance(result, dict) or not result.get('success', True):
+            error_msg = (result or {}).get('error', 'SQL 代理返回异常')
+
+        # 兼容 SQL 代理可能返回的几种结构：
+        #   {'success': True, 'data': [ {...}, {...} ]}
+        #   {'success': True, 'rows': [ {...} ]}
+        #   {'success': True, 'result': [ {...} ]}
+        #   直接一个 list
+        rows = []
+        if isinstance(result, list):
+            rows = result
+        elif isinstance(result, dict):
+            for key in ('data', 'rows', 'result', 'results'):
+                v = result.get(key)
+                if isinstance(v, list):
+                    rows = v
+                    break
+
+        for r in rows:
+            if isinstance(r, dict):
+                # 大小写兼容
+                t = r.get('TABLE_NAME') or r.get('table_name') or r.get('table')
+                c = r.get('COLUMN_NAME') or r.get('column_name') or r.get('column')
+            elif isinstance(r, (list, tuple)) and len(r) >= 2:
+                t, c = r[0], r[1]
+            else:
+                continue
+            if not t:
+                continue
+            if t not in columns:
+                columns[t] = []
+                tables.append(t)
+            if c and c not in columns[t]:
+                columns[t].append(c)
+
+        data = {
+            'success': True,
+            'tables': tables,
+            'columns': columns,
+            'cached': False,
+            'ts': now
+        }
+        if error_msg:
+            data['warning'] = error_msg
+
+        # 只在拿到有效数据时写缓存，避免把空结果缓存 5 分钟
+        if tables:
+            _SQL_META_CACHE['data'] = {
+                'success': True,
+                'tables': tables,
+                'columns': columns
+            }
+            _SQL_META_CACHE['ts'] = now
+
+        return data
 
     def handle_products(self):
         """获取产品列表"""

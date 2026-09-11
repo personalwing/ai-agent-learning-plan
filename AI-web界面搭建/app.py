@@ -862,6 +862,28 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(result))
             return
 
+        # ============ 新增：SQL 元数据（表/字段）接口，供前端自动补全 ============
+        if self.path == '/wjr-test/api/sql-meta':
+            try:
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.end_headers()
+                result = wjr_handler.handle_sql_meta()
+                self.wfile.write(json.dumps(result, ensure_ascii=False))
+            except Exception as e:
+                # 出错也要保证前端拿到合法 JSON，避免补全彻底挂掉
+                try:
+                    self.wfile.write(json.dumps({
+                        'success': False,
+                        'tables': [],
+                        'columns': {},
+                        'error': str(e)
+                    }, ensure_ascii=False))
+                except Exception:
+                    pass
+            return
+        # ====================================================================
+
         if self.path.startswith('/wjr-test'):
             self.send_response(404)
             self.end_headers()

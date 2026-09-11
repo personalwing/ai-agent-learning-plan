@@ -188,6 +188,31 @@
         .api-list-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
         .api-list-container::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7c3aed, #6d28d9); border-radius: 4px; }
 
+        /* ============ 扫描接口分组标题（新增） ============ */
+        .api-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px 6px 10px;
+            margin-top: 6px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.25);
+        }
+        .api-group-header:first-child { margin-top: 0; }
+        .api-group-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a78bfa;
+            letter-spacing: 0.5px;
+        }
+        .api-group-count {
+            font-size: 10px;
+            color: #6b7280;
+            background: rgba(124, 58, 237, 0.15);
+            padding: 1px 8px;
+            border-radius: 10px;
+        }
+        /* ====================================================== */
+
         .api-item {
             padding: 10px 12px;
             margin-bottom: 6px;
@@ -432,6 +457,58 @@
         }
         .default-headers .hl { color: #a78bfa; }
 
+        /* ============ SQL 自动补全下拉框（新增） ============ */
+        .sql-input-wrap {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+        .sql-suggest {
+            position: absolute;
+            display: none;
+            background: #111827;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 999;
+            min-width: 180px;
+            max-width: 90%;
+        }
+        .sql-suggest::-webkit-scrollbar { width: 4px; }
+        .sql-suggest::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.5); border-radius: 4px; }
+        .sql-suggest .sug-item {
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #e2e8f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+            transition: background 0.1s;
+        }
+        .sql-suggest .sug-item:last-child { border-bottom: none; }
+        .sql-suggest .sug-item:hover,
+        .sql-suggest .sug-item.active {
+            background: rgba(139, 92, 246, 0.25);
+        }
+        .sql-suggest .sug-item .sug-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sql-suggest .sug-item .sug-kind {
+            font-size: 10px;
+            color: #8b95a8;
+            flex-shrink: 0;
+        }
+        .sql-suggest .sug-item .sug-kind.k-table { color: #34d399; }
+        .sql-suggest .sug-item .sug-kind.k-column { color: #60a5fa; }
+        .sql-suggest .sug-item .sug-kind.k-keyword { color: #fbbf24; }
+        /* ====================================================== */
+
         /* 全局滚动条美化 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
@@ -501,7 +578,11 @@
                 <span class="count">3307/wjr_trove</span>
             </div>
             <div class="sql-panel" style="padding:12px;display:flex;flex-direction:column;height:calc(100% - 45px);gap:10px">
-                <textarea id="sqlInput" rows="4" style="width:100%;flex:1;background:rgba(15,23,42,0.5);border:1px solid rgba(139,92,246,0.25);color:#e2e8f0;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;padding:12px;border-radius:8px;resize:none;outline:none;transition:all 0.2s;line-height:1.5" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(139,92,246,0.25)';this.style.boxShadow='none'">SELECT name, status, created FROM flows ORDER BY created DESC LIMIT 10</textarea>
+                <!-- 新增：用 wrap 包住 textarea，用于定位补全下拉框 -->
+                <div class="sql-input-wrap">
+                    <textarea id="sqlInput" rows="4" style="width:100%;height:100%;background:rgba(15,23,42,0.5);border:1px solid rgba(139,92,246,0.25);color:#e2e8f0;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;padding:12px;border-radius:8px;resize:none;outline:none;transition:all 0.2s;line-height:1.5" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(139,92,246,0.25)';this.style.boxShadow='none'">SELECT name, status, created FROM flows ORDER BY created DESC LIMIT 10</textarea>
+                    <div class="sql-suggest" id="sqlSuggest"></div>
+                </div>
                 <div style="display:flex;gap:10px">
                     <button class="btn btn-primary" onclick="executeSQL()" style="flex:1">▶ 执行查询</button>
                     <button class="btn" onclick="showTables()" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;box-shadow:0 2px 8px rgba(16,185,129,0.3)" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">📋 所有表</button>
@@ -717,6 +798,222 @@ if (document.getElementById('sqlInput')) {
 }
 
 // ============================================================
+// SQL 自动补全（新增，与上面功能完全隔离）
+// ============================================================
+var SQL_META = { tables: [], columns: {} };
+var _sqlSuggestBox = null;
+var _sqlActiveIdx = -1;
+var _sqlCurrentList = [];
+
+// SQL 关键字（大写）
+var SQL_KEYWORDS = [
+    'SELECT','FROM','WHERE','AND','OR','NOT','IN','LIKE','BETWEEN','IS','NULL',
+    'ORDER','BY','GROUP','HAVING','LIMIT','OFFSET','ASC','DESC','AS',
+    'JOIN','LEFT','RIGHT','INNER','OUTER','ON','UNION','ALL','DISTINCT',
+    'INSERT','INTO','VALUES','UPDATE','SET','DELETE','CREATE','TABLE','DROP',
+    'ALTER','INDEX','SHOW','TABLES','DESCRIBE','DESC','COUNT','SUM','AVG','MAX','MIN'
+];
+
+// 页面加载时拉一次元数据；失败也不影响 SQL 查询功能
+function loadSQLMeta() {
+    fetch('/wjr-test/api/sql-meta')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d && d.tables) {
+                SQL_META.tables = d.tables || [];
+                SQL_META.columns = d.columns || {};
+            }
+        })
+        ['catch'](function() {
+            // 静默失败，补全降级为只提示 SQL 关键字
+            SQL_META = { tables: [], columns: {} };
+        });
+}
+
+function getSQLCurrentWord() {
+    var ta = document.getElementById('sqlInput');
+    if (!ta) return '';
+    var pos = ta.selectionStart;
+    var text = ta.value.slice(0, pos);
+    var m = text.match(/([A-Za-z_][A-Za-z0-9_]*)$/);
+    return m ? m[1] : '';
+}
+
+// 判断当前上下文：'table' / {type:'column', table} / 'any'
+function getSQLContext(textBeforeCursor) {
+    // 前文是 FROM / JOIN / UPDATE / INTO / TABLE 且还在写表名
+    var m = textBeforeCursor.match(/\b(from|join|update|into|table)\s+[A-Za-z0-9_]*$/i);
+    if (m) return 'table';
+    // 出现了 "表名." 则提示该表字段
+    var c = textBeforeCursor.match(/([A-Za-z_][A-Za-z0-9_]*)\.\s*([A-Za-z0-9_]*)$/);
+    if (c) return { type: 'column', table: c[1] };
+    return 'any';
+}
+
+function collectSQLCandidates(word, ctx) {
+    var out = [];
+    var w = (word || '').toLowerCase();
+    var match = function(s) { return !w || s.toLowerCase().indexOf(w) === 0; };
+
+    if (ctx === 'table') {
+        for (var i = 0; i < SQL_META.tables.length; i++) {
+            var t = SQL_META.tables[i];
+            if (match(t)) out.push({ label: t, kind: 'table' });
+        }
+    } else if (ctx && ctx.type === 'column') {
+        var cols = SQL_META.columns[ctx.table] || [];
+        for (var j = 0; j < cols.length; j++) {
+            if (match(cols[j])) out.push({ label: cols[j], kind: 'column' });
+        }
+    } else {
+        // 'any'：关键字 + 表 + 字段（去重）
+        for (var k = 0; k < SQL_KEYWORDS.length; k++) {
+            if (match(SQL_KEYWORDS[k])) out.push({ label: SQL_KEYWORDS[k], kind: 'keyword' });
+        }
+        var seen = {};
+        for (var ti = 0; ti < SQL_META.tables.length; ti++) {
+            var tt = SQL_META.tables[ti];
+            if (match(tt)) { out.push({ label: tt, kind: 'table' }); seen[tt] = 1; }
+        }
+        for (var tbl in SQL_META.columns) {
+            var arr = SQL_META.columns[tbl];
+            for (var ci = 0; ci < arr.length; ci++) {
+                var col = arr[ci];
+                if (!seen[col] && match(col)) { out.push({ label: col, kind: 'column' }); seen[col] = 1; }
+            }
+        }
+    }
+    return out.slice(0, 12);
+}
+
+function renderSQLSuggest(list) {
+    var box = _sqlSuggestBox;
+    if (!box) return;
+    if (!list.length) { hideSQLSuggest(); return; }
+
+    _sqlCurrentList = list;
+    _sqlActiveIdx = 0;
+
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+        var it = list[i];
+        var kindCls = it.kind === 'table' ? 'k-table'
+                    : it.kind === 'column' ? 'k-column'
+                    : 'k-keyword';
+        var kindTxt = it.kind === 'table' ? '表'
+                    : it.kind === 'column' ? '字段'
+                    : '关键字';
+        html += '<div class="sug-item' + (i === 0 ? ' active' : '') + '" data-i="' + i + '">'
+              +   '<span class="sug-label">' + escapeHTML(it.label) + '</span>'
+              +   '<span class="sug-kind ' + kindCls + '">' + kindTxt + '</span>'
+              + '</div>';
+    }
+    box.innerHTML = html;
+    box.style.display = 'block';
+
+    // 定位：贴近 textarea 左下（简单可靠，避免算光标像素坐标）
+    var ta = document.getElementById('sqlInput');
+    var wrap = box.parentNode;
+    box.style.left = '12px';
+    box.style.bottom = '12px';
+    box.style.top = 'auto';
+
+    // 事件委托
+    var items = box.querySelectorAll('.sug-item');
+    for (var n = 0; n < items.length; n++) {
+        (function(el) {
+            el.onmousedown = function(e) {
+                e.preventDefault(); // 防止 textarea 失焦
+                var idx = parseInt(el.getAttribute('data-i'), 10);
+                applySQLSuggest(_sqlCurrentList[idx]);
+            };
+        })(items[n]);
+    }
+}
+
+function hideSQLSuggest() {
+    if (_sqlSuggestBox) _sqlSuggestBox.style.display = 'none';
+    _sqlActiveIdx = -1;
+    _sqlCurrentList = [];
+}
+
+function refreshSQLActive() {
+    var box = _sqlSuggestBox;
+    if (!box) return;
+    var items = box.querySelectorAll('.sug-item');
+    for (var i = 0; i < items.length; i++) {
+        if (i === _sqlActiveIdx) items[i].classList.add('active');
+        else items[i].classList.remove('active');
+    }
+    // 滚动到可视
+    if (items[_sqlActiveIdx] && items[_sqlActiveIdx].scrollIntoView) {
+        items[_sqlActiveIdx].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function applySQLSuggest(item) {
+    if (!item) return;
+    var ta = document.getElementById('sqlInput');
+    var pos = ta.selectionStart;
+    var text = ta.value;
+    var before = text.slice(0, pos);
+    var after = text.slice(pos);
+    var m = before.match(/([A-Za-z_][A-Za-z0-9_]*)$/);
+    var word = m ? m[1] : '';
+    var start = pos - word.length;
+    var newVal = text.slice(0, start) + item.label + after;
+    ta.value = newVal;
+    var newPos = start + item.label.length;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+    hideSQLSuggest();
+}
+
+function onSQLInput(e) {
+    var ta = e.target;
+    var before = ta.value.slice(0, ta.selectionStart);
+    var word = getSQLCurrentWord();
+
+    // 只有正在输入一个词、或刚输入 "." 时才提示
+    var lastChar = before.slice(-1);
+    if (!word && lastChar !== '.') { hideSQLSuggest(); return; }
+    if (!word && lastChar === '.') {
+        // 刚打 "." 立刻提示该表字段
+    }
+
+    var ctx = getSQLContext(before);
+    var list = collectSQLCandidates(word, ctx);
+    renderSQLSuggest(list);
+}
+
+function onSQLKeydown(e) {
+    var box = _sqlSuggestBox;
+    if (!box || box.style.display === 'none') {
+        return;
+    }
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _sqlActiveIdx = Math.min(_sqlActiveIdx + 1, _sqlCurrentList.length - 1);
+        refreshSQLActive();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _sqlActiveIdx = Math.max(_sqlActiveIdx - 1, 0);
+        refreshSQLActive();
+    } else if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault();
+        if (_sqlCurrentList[_sqlActiveIdx]) {
+            applySQLSuggest(_sqlCurrentList[_sqlActiveIdx]);
+        }
+    } else if (e.key === 'Escape') {
+        hideSQLSuggest();
+    }
+}
+
+function escapeHTML(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============================================================
 // KSCC扫描功能
 // ============================================================
 function updateStatus(text, type) {
@@ -755,36 +1052,89 @@ function discoverAPIs() {
     });
 }
 
+// ============================================================
+// 渲染扫描接口（按 category 分组，组内 GET→POST→其它，再按 path 字母序）
+// ============================================================
+var CATEGORY_ORDER = ['副本集', '分片集群', '通用', '公共', '公共接口', '副本集接口', '分片集群接口'];
+var METHOD_ORDER = { 'GET': 0, 'POST': 1, 'PUT': 2, 'DELETE': 3 };
+
 function renderScannedApis() {
     var container = document.getElementById('scannedApiList');
     if (scannedApis.length === 0) {
         container.innerHTML = '<div class="hint-text">点击 "扫描" 发现 API</div>';
         return;
     }
-    var html = '';
+
+    // 1) 按 category 分组
+    var groups = {};
     for (var i = 0; i < scannedApis.length; i++) {
         var api = scannedApis[i];
-        var regId = 'scanned_' + i;
-        apiRegistry[regId] = api;
-        var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
-            '<span class="risk-badge risk-high">高</span>' : '';
-        var name = api.name || api.path.split('/').pop() || '未知';
-        var desc = api.description ? '<div class="api-desc" title="' + api.description + '">' + api.description + '</div>' : '';
-        // action 接口标记一个小角标提示有下拉
-        var actBadge = (api.actions && api.actions.length) ? '<span class="category-tag">' + api.actions.length + '动作</span>' : '';
-        html += '<div class="api-item" onclick="selectAPI(\'' + api.path.replace(/'/g, "\\'") + '\', \'' + api.method + '\', apiRegistry[\'' + regId + '\'])">' +
-            '<div class="api-line1">' +
-            '<span class="method-tag method-' + api.method + '">' + api.method + '</span>' +
-            '<span class="api-name" title="' + name + '">' + name + '</span>' +
-            actBadge +
-            '<span class="source-tag source-scanned">扫描</span>' +
-            risk +
-            '</div>' +
-            '<div class="api-line2">' +
-            '<span class="path-text" title="' + api.path + '">' + api.path + '</span>' +
-            '</div>' +
-            desc +
-        '</div>';
+        var cat = api.category || '未分类';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(api);
+    }
+
+    // 2) 组名排序：优先按预定义顺序，其余字母序
+    var catKeys = Object.keys(groups);
+    catKeys.sort(function(a, b) {
+        var ia = CATEGORY_ORDER.indexOf(a);
+        var ib = CATEGORY_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+
+    // 3) 逐组渲染
+    var html = '';
+    for (var k = 0; k < catKeys.length; k++) {
+        var cat = catKeys[k];
+        var list = groups[cat].slice();
+
+        // 组内排序：方法优先级 → path 字母序 → name 字母序
+        list.sort(function(a, b) {
+            var ma = METHOD_ORDER[a.method] !== undefined ? METHOD_ORDER[a.method] : 99;
+            var mb = METHOD_ORDER[b.method] !== undefined ? METHOD_ORDER[b.method] : 99;
+            if (ma !== mb) return ma - mb;
+            var pa = a.path || '';
+            var pb = b.path || '';
+            if (pa !== pb) return pa.localeCompare(pb);
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        // 组标题
+        html += '<div class="api-group-header">'
+              +   '<span class="api-group-title">' + escapeHTML(cat) + '</span>'
+              +   '<span class="api-group-count">' + list.length + '</span>'
+              + '</div>';
+
+        // 组内条目
+        for (var j = 0; j < list.length; j++) {
+            var api = list[j];
+            var regId = 'scanned_' + k + '_' + j;   // 用组序号+组内序号，避免 key 冲突
+            apiRegistry[regId] = api;
+
+            var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
+                '<span class="risk-badge risk-high">高</span>' : '';
+            var name = api.name || api.path.split('/').pop() || '未知';
+            var desc = api.description ? '<div class="api-desc" title="' + escapeHTML(api.description) + '">' + escapeHTML(api.description) + '</div>' : '';
+            var actBadge = (api.actions && api.actions.length) ? '<span class="category-tag">' + api.actions.length + '动作</span>' : '';
+
+            html += '<div class="api-item" onclick="selectAPI(\''
+                  +  api.path.replace(/'/g, "\\'") + '\', \''
+                  +  api.method + '\', apiRegistry[\'' + regId + '\'])">'
+                  +   '<div class="api-line1">'
+                  +     '<span class="method-tag method-' + api.method + '">' + api.method + '</span>'
+                  +     '<span class="api-name" title="' + escapeHTML(name) + '">' + escapeHTML(name) + '</span>'
+                  +     actBadge
+                  +     risk
+                  +   '</div>'
+                  +   '<div class="api-line2">'
+                  +     '<span class="path-text" title="' + escapeHTML(api.path) + '">' + escapeHTML(api.path) + '</span>'
+                  +   '</div>'
+                  +   desc
+                  + '</div>';
+        }
     }
     container.innerHTML = html;
 }
@@ -1136,6 +1486,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('input', buildCurl);
         if (el && el.tagName === 'SELECT') el.addEventListener('change', buildCurl);
     });
+
+    // ============ SQL 自动补全初始化（新增） ============
+    _sqlSuggestBox = document.getElementById('sqlSuggest');
+    var sqlTa = document.getElementById('sqlInput');
+    if (sqlTa && _sqlSuggestBox) {
+        // 拉一次元数据
+        loadSQLMeta();
+        // 输入 → 弹候选
+        sqlTa.addEventListener('input', onSQLInput);
+        // 键盘导航
+        sqlTa.addEventListener('keydown', onSQLKeydown);
+        // 失焦后稍延迟隐藏（留给 mousedown 处理）
+        sqlTa.addEventListener('blur', function() {
+            setTimeout(hideSQLSuggest, 150);
+        });
+        // 点击候选框外部也隐藏
+        document.addEventListener('mousedown', function(e) {
+            if (_sqlSuggestBox && !_sqlSuggestBox.contains(e.target) && e.target !== sqlTa) {
+                hideSQLSuggest();
+            }
+        });
+    }
+    // ==================================================
 });
 </script>
 </body>

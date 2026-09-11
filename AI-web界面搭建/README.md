@@ -54,13 +54,15 @@ python2 -m pip install requests
   - `<AUTH_TOKEN>`
   - `<APPLICATION_TOKEN>`
   - `<ADMIN_PASSWORD>`
+  - `<VPC_ID>`
+  - `<VNET_ID>`
 - `static/wjr_test/index.html`
   - `<KSCC_HOST>`
   - `<PROJECT_ID>`
   - `<AUTH_TOKEN>`
   - `<APPLICATION_TOKEN>`
 - `sql_proxy.py`
-  - `<DB_PASSWORD>`
+  - `<DB_PASSWORD>`（也可用环境变量 `TROVE_DB_PASSWORD` 注入，避免真实密码写进代码）
 
 不要将真实凭据提交到 Git。建议使用本地配置文件、环境变量或部署系统的密钥管理功能保存生产配置。
 
