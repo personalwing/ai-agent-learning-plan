@@ -8,11 +8,9 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* 深色背景 + 图片背景 50%透明度，能看清图片 */
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background:
-                url('/wjr-test/bg.jpg') center/cover no-repeat fixed;
+            background: url('/wjr-test/bg.jpg') center/cover no-repeat fixed;
             color: #e2e8f0;
             height: 100vh;
             overflow: hidden;
@@ -20,7 +18,7 @@
 
         .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; min-width: 900px; }
 
-        /* 顶部导航 - 不透底深色背景 */
+        /* ============ 顶部导航 ============ */
         .top-nav {
             background: #111827;
             border-bottom: 1px solid rgba(124, 58, 237, 0.3);
@@ -31,18 +29,18 @@
             flex-shrink: 0;
         }
         .top-nav h1 {
-            color: #e2e8f0;
-            text-shadow: none;
-            font-weight: 700;
-            font-size: 18px;
+            font-size: 16px; font-weight: 600;
+            background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .top-nav .badge {
-            background: rgba(124, 58, 237, 0.2);
-            border: 1px solid rgba(124, 58, 237, 0.3);
+            background: rgba(124, 58, 237, 0.3);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 10px;
             color: #a78bfa;
         }
-        .top-nav h1 { font-size: 16px; font-weight: 600; background: linear-gradient(135deg, #a78bfa, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .top-nav .badge { background: rgba(124, 58, 237, 0.3); border: 1px solid rgba(124, 58, 237, 0.4); padding: 3px 12px; border-radius: 20px; font-size: 10px; color: #a78bfa; }
         .top-nav .status-bar { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #9ca3af; }
         .top-nav .status-dot {
             width: 8px; height: 8px; border-radius: 50%; display: inline-block;
@@ -53,42 +51,21 @@
 
         .main-body { display: flex; flex: 1; overflow: hidden; gap: 1px; background: rgba(0, 0, 0, 0.3); }
 
-        /* 面板基础样式 - 使用 flex-basis 替代固定宽度，更灵活 */
+        /* ============ 面板基础 ============ */
         .fixed-panel, .scanned-panel, .test-panel {
             display: flex;
             flex-direction: column;
             background: rgba(17, 24, 39, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 280px; /* 防止内容被挤压 */
+            min-width: 280px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         }
-
-        /* 三栏布局：使用 flex 比例而非固定百分比 */
         .fixed-panel { flex: 1.2; }
         .scanned-panel { flex: 0.8; }
         .test-panel { flex: 1.0; }
 
-        /* 旧的选择器保持兼容，但会被行内样式覆盖，这里移除硬编码宽度 */
-        .fixed-panel[style*="width:40%"] { width: auto !important; flex: 1.2; }
-        .scanned-panel[style*="width:25%"] { width: auto !important; flex: 0.8; }
-        .test-panel[style*="width:35%"] { width: auto !important; flex: 1.0; }
-
-        /* 文字加阴影保证可读性 */
-        .fixed-panel, .scanned-panel, .test-panel,
-        .fixed-panel .panel-header h2,
-        .scanned-panel .panel-header h2,
-        .test-panel .panel-header h2,
-        .api-item, .api-item .api-name,
-        .api-item .path-text, .api-item .api-desc {
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        /* 左侧 SQL 面板 */
-        .fixed-panel {
-            width: 20%;
-            border-right: 1px solid rgba(124, 58, 237, 0.15);
-        }
-        .fixed-panel .panel-header {
-            padding: 12px 16px;
+        .panel-header {
+            padding: 10px 14px;
             background: rgba(17, 24, 39, 0.8);
             border-bottom: 1px solid rgba(124, 58, 237, 0.2);
             display: flex;
@@ -96,44 +73,32 @@
             align-items: center;
             flex-shrink: 0;
         }
-        .fixed-panel .panel-header h2 { font-size: 13px; color: #60a5fa; display: flex; align-items: center; gap: 6px; }
-        .fixed-panel .panel-header .count { font-size: 11px; color: #6b7280; background: rgba(96, 165, 250, 0.1); padding: 2px 8px; border-radius: 12px; }
+        .panel-header h2 { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .fixed-panel .panel-header h2 { color: #60a5fa; }
+        .scanned-panel .panel-header h2 { color: #f59e0b; }
+        .test-panel .panel-header h2 { color: #a78bfa; }
+        .fixed-panel .panel-header .count { font-size: 10px; color: #6b7280; background: rgba(96, 165, 250, 0.1); padding: 2px 8px; border-radius: 12px; }
+        .scanned-panel .panel-header .btn-group { display: flex; gap: 6px; }
 
-        /* 中间扫描面板 */
-        .scanned-panel {
-            width: 40%;
-            border-right: 1px solid rgba(124, 58, 237, 0.15);
+        /* 中间栏子 Tab */
+        .mid-tab {
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            user-select: none;
         }
-        .scanned-panel .panel-header {
-            padding: 12px 16px;
-            background: rgba(17, 24, 39, 0.8);
-            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
+        .mid-tab:hover { color: #c4b5fd; background: rgba(124,58,237,0.1); }
+        .mid-tab.active {
+            color: #e9d5ff;
+            background: rgba(124, 58, 237, 0.25);
         }
-        .scanned-panel .panel-header h2 { font-size: 13px; color: #f59e0b; display: flex; align-items: center; gap: 6px; }
-        .scanned-panel .panel-header .btn-group { display: flex; gap: 8px; }
 
-        /* 右侧测试面板 */
-        .test-panel {
-            width: 40%;
-        }
-        .test-panel .panel-header {
-            padding: 12px 16px;
-            background: rgba(17, 24, 39, 0.8);
-            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .test-panel .panel-header h2 { font-size: 13px; color: #a78bfa; display: flex; align-items: center; gap: 6px; }
-
-        /* 按钮样式 - 渐变色 + 阴影 */
+        /* ============ 按钮 ============ */
         .btn {
-            padding: 6px 14px;
+            padding: 5px 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -152,20 +117,14 @@
             color: #fff;
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
         }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
-        }
+        .btn-primary:hover { background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%); }
 
         .btn-success {
             background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
             color: #fff;
             box-shadow: 0 2px 8px rgba(72, 187, 120, 0.4);
         }
-        .btn-success:hover {
-            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5);
-        }
+        .btn-success:hover { background: linear-gradient(135deg, #38a169 0%, #2f855a 100%); }
 
         .clear-btn {
             padding: 5px 12px;
@@ -178,7 +137,8 @@
             transition: all 0.2s;
         }
         .clear-btn:hover { background: #ef4444; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
-        
+
+        /* ============ 列表容器 ============ */
         .api-list-container {
             flex: 1;
             overflow-y: auto;
@@ -188,7 +148,6 @@
         .api-list-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
         .api-list-container::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7c3aed, #6d28d9); border-radius: 4px; }
 
-        /* ============ 扫描接口分组标题（新增） ============ */
         .api-group-header {
             display: flex;
             justify-content: space-between;
@@ -198,29 +157,17 @@
             border-bottom: 1px solid rgba(124, 58, 237, 0.25);
         }
         .api-group-header:first-child { margin-top: 0; }
-        .api-group-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #a78bfa;
-            letter-spacing: 0.5px;
-        }
-        .api-group-count {
-            font-size: 10px;
-            color: #6b7280;
-            background: rgba(124, 58, 237, 0.15);
-            padding: 1px 8px;
-            border-radius: 10px;
-        }
-        /* ====================================================== */
+        .api-group-title { font-size: 11px; font-weight: 700; color: #a78bfa; letter-spacing: 0.5px; }
+        .api-group-count { font-size: 10px; color: #6b7280; background: rgba(124, 58, 237, 0.15); padding: 1px 8px; border-radius: 10px; }
 
         .api-item {
-            padding: 10px 12px;
-            margin-bottom: 6px;
+            padding: 8px 10px;
+            margin-bottom: 5px;
             border-radius: 8px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
             font-size: 11px;
             transition: all 0.2s ease;
             background: rgba(30, 41, 59, 0.4);
@@ -231,8 +178,8 @@
             border-color: rgba(124, 58, 237, 0.3);
             transform: translateX(2px);
         }
-        .api-line1 { display: flex; gap: 8px; align-items: center; }
-        .api-line2 { display: flex; gap: 4px; align-items: center; margin-top: 2px; }
+        .api-line1 { display: flex; gap: 6px; align-items: center; }
+        .api-line2 { display: flex; gap: 4px; align-items: center; }
         .api-item .method-tag {
             padding: 2px 6px;
             border-radius: 4px;
@@ -255,6 +202,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             color: #e2e8f0;
+            font-size: 11px;
         }
         .api-item .path-text {
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -272,84 +220,275 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            margin-top: 2px;
         }
-        .api-item .source-tag {
-            font-size: 9px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            flex-shrink: 0;
-            font-weight: 500;
-        }
-        .source-fixed { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .source-scanned { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
         .api-item .risk-badge { font-size: 9px; padding: 2px 6px; border-radius: 12px; flex-shrink: 0; font-weight: 600; }
         .risk-high { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
         .api-item .category-tag {
             font-size: 9px;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 12px;
             background: rgba(124, 58, 237, 0.2);
             color: #c4b5fd;
             border: 1px solid rgba(124, 58, 237, 0.3);
             flex-shrink: 0;
         }
-        
+
         .hint-text { color: #64748b; font-size: 12px; text-align: center; padding: 30px 0; }
 
+        /* ============ 左侧 SQL 面板 ============ */
+        .sql-panel {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 41px);
+            gap: 8px;
+        }
+        .sql-input-wrap {
+            position: relative;
+            width: 100%;
+            flex-shrink: 0;
+            display: flex;
+            height: 96px;
+        }
+        .sql-suggest {
+            position: absolute;
+            display: none;
+            background: #111827;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 9999;
+            min-width: 180px;
+            max-width: 90%;
+            top: 100%;
+            left: 8px;
+            margin-top: 4px;
+        }
+        .sql-suggest::-webkit-scrollbar { width: 4px; }
+        .sql-suggest::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.5); border-radius: 4px; }
+        .sql-suggest .sug-item {
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #e2e8f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+            transition: background 0.1s;
+        }
+        .sql-suggest .sug-item:last-child { border-bottom: none; }
+        .sql-suggest .sug-item:hover,
+        .sql-suggest .sug-item.active { background: rgba(139, 92, 246, 0.25); }
+        .sql-suggest .sug-item .sug-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sql-suggest .sug-item .sug-kind { font-size: 10px; color: #8b95a8; flex-shrink: 0; }
+        .sql-suggest .sug-item .sug-kind.k-table { color: #34d399; }
+        .sql-suggest .sug-item .sug-kind.k-column { color: #60a5fa; }
+        .sql-suggest .sug-item .sug-kind.k-keyword { color: #fbbf24; }
+
+        .sql-textarea {
+            width: 100%;
+            height: 100%;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(139,92,246,0.25);
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            font-size: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+            line-height: 1.5;
+        }
+        .sql-textarea:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
+        }
+
+        .sql-result {
+            flex: 1;
+            overflow: auto;
+            background: rgba(15,23,42,0.3);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            border: 1px solid rgba(139,92,246,0.2);
+            position: relative;
+            min-height: 140px;
+        }
+
+        .sql-hist-item {
+            padding: 6px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(139,92,246,0.08);
+            border-radius: 4px;
+            transition: background 0.1s;
+        }
+        .sql-hist-item:hover { background: rgba(139,92,246,0.18); }
+        .sql-hist-item .hist-sql { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e2e8f0; }
+        .sql-hist-item .hist-time { font-size: 10px; color: #6b7280; flex-shrink: 0; }
+        .sql-hist-item .hist-ok { flex-shrink: 0; font-size: 10px; }
+
+        /* ============ 右侧 请求测试 ============ */
         .test-body {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 12px 16px;
+            padding: 10px 12px;
             overflow: hidden;
+            gap: 6px;
         }
-        .test-body .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
-        .test-body .row label { color: #94a3b8; font-size: 11px; min-width: 50px; font-weight: 500; }
-        .test-body select, .test-body input {
-            padding: 6px 10px;
+
+        .tf-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .tf-row > label {
+            color: #94a3b8;
+            font-size: 11px;
+            min-width: 46px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .tf-row select,
+        .tf-row input[type="text"] {
+            padding: 5px 8px;
             border-radius: 6px;
             border: 1px solid rgba(124, 58, 237, 0.2);
             background: rgba(15, 23, 42, 0.6);
             color: #e2e8f0;
-            font-size: 12px;
+            font-size: 11px;
             outline: none;
             transition: all 0.2s;
         }
-        .test-body select:focus, .test-body input:focus {
+        .tf-row select:focus,
+        .tf-row input:focus {
             border-color: #8b5cf6;
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
-        .test-body select { min-width: 80px; }
-        .test-body input { flex: 1; min-width: 80px; }
-        .action-row { display: none; }
-        .action-row.show { display: flex; }
-        .action-row select { flex: 1; }
-        .test-body textarea {
+        .tf-row select { min-width: 76px; }
+        .tf-row input[type="text"] { flex: 1; min-width: 60px; }
+        .tf-row .send-btn { flex-shrink: 0; }
+
+        .tf-collapse-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px;
+            font-size: 11px;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 6px;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .tf-collapse-head:hover { background: rgba(124, 58, 237, 0.1); color: #c4b5fd; }
+        .tf-collapse-head .arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            font-size: 9px;
+            color: #6d28d9;
+            width: 10px;
+        }
+        .tf-collapse-head.open .arrow { transform: rotate(90deg); }
+        .tf-collapse-head .title { font-weight: 500; }
+        .tf-collapse-head .meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-left: auto;
+            font-family: 'JetBrains Mono', monospace;
+            max-width: 55%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tf-collapse-body {
+            display: none;
+            padding: 0 0 4px 0;
+        }
+        .tf-collapse-body.open { display: block; }
+
+        .tf-collapse-body textarea {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid rgba(124, 58, 237, 0.2);
             background: rgba(15, 23, 42, 0.6);
             color: #e2e8f0;
-            font-size: 12px;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
             outline: none;
             resize: vertical;
             transition: all 0.2s;
             line-height: 1.5;
         }
-        .test-body textarea:focus {
+        .tf-collapse-body textarea:focus {
             border-color: #8b5cf6;
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
+        .tf-collapse-body textarea.body-ta { min-height: 90px; max-height: 200px; }
+        .tf-collapse-body textarea.small-ta { min-height: 40px; max-height: 80px; }
+
+        .action-row { display: none; }
+        .action-row.show { display: flex; }
+
+        .stats-row {
+            display: flex;
+            gap: 14px;
+            font-size: 11px;
+            color: #94a3b8;
+            padding: 4px 2px;
+            flex-shrink: 0;
+        }
+        .stats-row span { color: #a78bfa; font-weight: 600; }
+
+        .send-btn {
+            padding: 5px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #fff;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+        .send-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .default-headers {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 9.5px;
+            color: #6b7280;
+            font-family: monospace;
+            border: 1px solid rgba(55,65,81,0.15);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .default-headers .hl { color: #a78bfa; }
 
         .response-wrap {
             flex: 1;
             display: flex;
             flex-direction: column;
             min-height: 0;
-            margin-top: 8px;
             background: rgba(15, 23, 42, 0.4);
             border-radius: 8px;
             border: 1px solid rgba(124, 58, 237, 0.15);
@@ -360,20 +499,22 @@
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: rgba(17, 24, 39, 0.6);
             border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+            gap: 6px;
         }
-        .response-header .label { color: #94a3b8; font-size: 11px; font-weight: 500; }
+        .response-header .label { color: #94a3b8; font-size: 11px; font-weight: 500; flex-shrink: 0; }
         .copy-resp-btn {
-            padding: 4px 12px;
+            padding: 3px 10px;
             border: 1px solid rgba(124, 58, 237, 0.3);
             border-radius: 6px;
             background: rgba(124, 58, 237, 0.15);
             color: #c4b5fd;
-            font-size: 11px;
+            font-size: 10.5px;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         .copy-resp-btn:hover {
             background: rgba(124, 58, 237, 0.3);
@@ -393,149 +534,347 @@
             font-size: 11px;
             white-space: pre-wrap;
             overflow: auto;
-            min-height: 100px;
+            min-height: 80px;
             color: #e2e8f0;
             line-height: 1.6;
+            word-break: break-word;
         }
         .response-area .hint { color: #64748b; font-size: 12px; }
 
-        .stats-row {
-            display: flex;
-            gap: 16px;
+        .resp-tabs { display: flex; gap: 2px; flex-shrink: 0; }
+        .resp-tab {
+            padding: 4px 12px;
             font-size: 11px;
             color: #94a3b8;
-            padding: 8px 0;
-            flex-shrink: 0;
-            margin-bottom: 8px;
-        }
-        .stats-row span { color: #a78bfa; font-weight: 600; }
-
-        .send-btn {
-            padding: 6px 18px;
-            border: none;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            color: #fff;
-            font-weight: 600;
-            font-size: 12px;
             cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            border: 1px solid transparent;
+            border-bottom: none;
             transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+            user-select: none;
         }
-        .send-btn:hover {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);
-            transform: translateY(-1px);
+        .resp-tab:hover { color: #c4b5fd; background: rgba(124,58,237,0.1); }
+        .resp-tab.active {
+            color: #e9d5ff;
+            background: rgba(124, 58, 237, 0.25);
+            border-color: rgba(124, 58, 237, 0.4);
         }
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
-        
-        .clear-btn {
-            padding: 3px 10px;
-            border: none;
-            border-radius: 3px;
-            background: rgba(239,68,68,0.6);
-            color: #fff;
-            font-size: 10px;
-            cursor: pointer;
-        }
-        .clear-btn:hover { background: #ef4444; }
-        
-        .default-headers {
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 3px;
-            padding: 3px 8px;
-            font-size: 9px;
-            color: #6b7280;
-            font-family: monospace;
-            margin-bottom: 3px;
-            max-height: 50px;
-            overflow-y: auto;
-            border: 1px solid rgba(55,65,81,0.15);
-        }
-        .default-headers .hl { color: #a78bfa; }
-
-        /* ============ SQL 自动补全下拉框（新增） ============ */
-        .sql-input-wrap {
-            position: relative;
-            width: 100%;
+        .resp-search {
             flex: 1;
+            min-width: 60px;
+            margin: 0 6px;
+            padding: 3px 8px;
+            background: #1a1d29;
+            color: #e6edf3;
+            border: 1px solid #333a4d;
+            border-radius: 4px;
+            font-size: 11px;
+            outline: none;
+        }
+
+        /* ============ 流程图 ============ */
+        .flow-canvas {
+            padding: 10px 12px;
             display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .flow-api-line {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(124,58,237,0.15);
+        }
+        .flow-api-line .method-tag { margin-right: 6px; }
+        .flow-api-line .url {
+            font-family: 'JetBrains Mono', monospace;
+            color: #e2e8f0;
+        }
+        .flow-summary {
+            background: rgba(139, 92, 246, 0.12);
+            border-left: 3px solid #8b5cf6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #c4b5fd;
+            margin-bottom: 10px;
+            line-height: 1.6;
+            white-space: normal;
+        }
+        .flow-layer { margin-bottom: 2px; }
+        .flow-layer-label {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 2px 10px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .flow-layer-label.l-ktrove-api { background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); }
+        .flow-layer-label.l-ktrove-taskmanager { background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.4); }
+        .flow-layer-label.l-flow { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); }
+        .flow-layer-label.l-task { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); }
+        .flow-layer-label.l-subtask { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.4); }
+        .flow-layer-label.l-unknown { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.4); }
+
+        .flow-node {
+            background: rgba(17, 24, 39, 0.75);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+        }
+        .flow-node:hover {
+            border-color: rgba(139, 92, 246, 0.7);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+            transform: translateX(2px);
+        }
+        .flow-node .fn-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #e9d5ff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .flow-node .fn-title::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            box-shadow: 0 0 6px rgba(139,92,246,0.8);
+            flex-shrink: 0;
+        }
+        .flow-node .fn-detail {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 3px;
+            line-height: 1.5;
+            padding-left: 12px;
+        }
+        .flow-node .fn-file {
+            font-size: 10px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #64748b;
+            margin-top: 4px;
+            padding-left: 12px;
+            word-break: break-all;
+        }
+        .flow-node .fn-file::before { content: '📄 '; }
+        .flow-arrow {
+            text-align: center;
+            color: #6d28d9;
+            font-size: 14px;
+            line-height: 1;
+            margin: 2px 0 4px 0;
+        }
+        .flow-arrow .arrow-label {
+            font-size: 9px;
+            color: #8b95a8;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 1px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(124,58,237,0.2);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .flow-degraded {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            line-height: 1.6;
+            white-space: normal;
+        }
+
+        /* ============ 资源列表 ============ */
+        .res-item {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(124, 58, 237, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .res-item:hover {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+            transform: translateX(2px);
+        }
+        .res-item .res-line1 {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .res-item .res-type {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+        .res-type-repset { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+        .res-type-cluster { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; }
+        .res-type-other { background: rgba(107,114,128,0.5); color: #cbd5e1; }
+        .res-item .res-name {
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #e2e8f0;
+        }
+        .res-item .res-status {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .res-item .res-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9.5px;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .res-item .res-time {
+            font-size: 9.5px;
+            color: #64748b;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 状态徽章：按类别着色 */
+        /* 空闲正常：绿 */
+        .res-status-NONE { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        /* 进行中：黄 */
+        .res-status-BUILDING,
+        .res-status-DELETING,
+        .res-status-REBOOTING,
+        .res-status-RESIZING,
+        .res-status-MIGRATING,
+        .res-status-RESTART_REQUIRED,
+        .res-status-TLS_CONFIGURING,
+        .res-status-TDE_CONFIGURING,
+        .res-status-UPGRADING,
+        .res-status-CONFIGING,
+        .res-status-SWITCHING,
+        .res-status-LOCKING,
+        .res-status-UNLOCKING,
+        .res-status-RECOVERING,
+        .res-status-RESTARTING,
+        .res-status-FIXING,
+        .res-status-FLUSHDBING,
+        .res-status-BACKUPING,
+        .res-status-ROLE_SWAP,
+        .res-status-ENABLE_RW,
+        .res-status-DISABLE_RW,
+        .res-status-ADDING_USER,
+        .res-status-CHANGING_PASSWORD,
+        .res-status-NETWORK_CONFIGURING,
+        .res-status-PARAMETER_CONFIGURING,
+        .res-status-ADD_SHARD,
+        .res-status-ADD_INSTANCE,
+        .res-status-REMOVE_INSTANCE,
+        .res-status-VPC_CONFIGING,
+        .res-status-CONFIGURING_SSL,
+        .res-status-OVERRIDING,
+        .res-status-SWITCHING_ROLE {
+            background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3);
+        }
+        /* 失败/错误：红 */
+        .res-status-BUILDING_ERROR_DNS,
+        .res-status-BUILDING_ERROR_SERVER,
+        .res-status-BUILDING_ERROR_VOLUME,
+        .res-status-BUILDING_ERROR_SEC_GROUP,
+        .res-status-BUILDING_ERROR_TIMEOUT_GA,
+        .res-status-TASK_ERROR,
+        .res-status-BUILDING_ERROR_NODE,
+        .res-status-BUILDING_ERROR_CONFIG,
+        .res-status-MIGRATE_FAILED,
+        .res-status-BUILDING_TIMEOUT_ERROR,
+        .res-status-SWITCH_ROLE_ERROR,
+        .res-status-ADD_SHARD_FAILED,
+        .res-status-ADD_INSTANCE_FAILED,
+        .res-status-REMOVE_INSTANCE_FAILED,
+        .res-status-ROLE_SWAP_ERROR,
+        .res-status-RESIZING_ERROR,
+        .res-status-UNLOCK_FAILED,
+        .res-status-CONFIG_ERROR,
+        .res-status-RECOVER_ERROR,
+        .res-status-ENABLE_RW_FAILED,
+        .res-status-DISABLE_RW_FAILED,
+        .res-status-REBOOT_ERROR,
+        .res-status-VIP_PORT_CONFIG_ERROR,
+        .res-status-VPC_CONFIG_ERROR,
+        .res-status-VIP_CONFIG_ERROR,
+        .res-status-UPGRADE_ERROR {
+            background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);
+        }
+        /* 锁定/软删/假删：灰 */
+        .res-status-LOCKED,
+        .res-status-LOCKED_DISK,
+        .res-status-SOFT_DELETED,
+        .res-status-FAKE_DELETED {
+            background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3);
+        }
+
+        /* ============ curl 区域 ============ */
+        .curl-wrap {
+            flex: 0 0 auto !important;
+            margin-top: 6px;
             min-height: 0;
         }
-        .sql-suggest {
-            position: absolute;
-            display: none;
-            background: #111827;
-            border: 1px solid rgba(139, 92, 246, 0.5);
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 999;
-            min-width: 180px;
-            max-width: 90%;
+        .curl-wrap.collapsed #curlArea { display: none; }
+        .curl-wrap #curlArea {
+            flex: 0 0 auto !important;
+            min-height: 0;
+            max-height: 200px;
+            padding: 8px 12px;
+            font-size: 10.5px;
+            line-height: 1.55;
+            color: #cbd5e1;
+            word-break: break-all;
+            overflow: auto;
         }
-        .sql-suggest::-webkit-scrollbar { width: 4px; }
-        .sql-suggest::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.5); border-radius: 4px; }
-        .sql-suggest .sug-item {
-            padding: 6px 10px;
-            font-size: 12px;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            color: #e2e8f0;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.08);
-            transition: background 0.1s;
-        }
-        .sql-suggest .sug-item:last-child { border-bottom: none; }
-        .sql-suggest .sug-item:hover,
-        .sql-suggest .sug-item.active {
-            background: rgba(139, 92, 246, 0.25);
-        }
-        .sql-suggest .sug-item .sug-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .sql-suggest .sug-item .sug-kind {
-            font-size: 10px;
-            color: #8b95a8;
-            flex-shrink: 0;
-        }
-        .sql-suggest .sug-item .sug-kind.k-table { color: #34d399; }
-        .sql-suggest .sug-item .sug-kind.k-column { color: #60a5fa; }
-        .sql-suggest .sug-item .sug-kind.k-keyword { color: #fbbf24; }
-        /* ====================================================== */
+        .curl-wrap #curlArea .hint { color: #4b5563; font-size: 11px; }
+        .ck-cmd { color: #a78bfa; font-weight: 600; }
+        .ck-opt { color: #fbbf24; }
+        .ck-url { color: #34d399; }
+        .ck-val { color: #94a3b8; }
 
-        /* 全局滚动条美化 */
+        /* 全局滚动条 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
         ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8b5cf6, #6d28d9); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #7c3aed, #5b21b6); }
 
-        /* 响应式布局 */
+        /* 响应式 */
         @media (max-width: 1400px) {
-            /* 中等屏幕：三栏保持但适当调整比例 */
             .fixed-panel { flex: 1.0; }
             .scanned-panel { flex: 0.7; }
             .test-panel { flex: 1.0; }
         }
-
         @media (max-width: 1100px) {
-            /* 小屏幕：三栏保持但最小宽度限制 */
-            .fixed-panel, .scanned-panel, .test-panel {
-                min-width: 250px;
-            }
-            /* 缩小字体和间距 */
-            .api-item { padding: 8px 10px; font-size: 10px; }
-            .api-item .api-name { font-size: 10px; }
-            .panel-header h2 { font-size: 12px; }
+            .fixed-panel, .scanned-panel, .test-panel { min-width: 250px; }
         }
-
         @media (max-width: 900px) {
-            /* 更小的屏幕：改为垂直堆叠 */
             .main-body { flex-direction: column; overflow-y: auto; }
             .fixed-panel, .scanned-panel, .test-panel {
                 width: 100% !important;
@@ -545,13 +884,7 @@
                 border-right: none;
                 border-bottom: 1px solid rgba(124,58,237,0.15);
             }
-            .test-panel { max-height: 50vh; }
-        }
-
-        @media (max-width: 640px) {
-            .top-nav { flex-wrap: wrap; gap: 4px; padding: 8px 12px; }
-            .top-nav h1 { font-size: 14px; }
-            .top-nav .status-bar { font-size: 9px; gap: 6px; }
+            .test-panel { max-height: 60vh; }
         }
     </style>
 </head>
@@ -560,7 +893,7 @@
     <div class="top-nav">
         <div style="display:flex;align-items:center;gap:8px;">
             <h1>🍃 MongoDB API 测试平台</h1>
-            <span class="badge">v2.0</span>
+            <span class="badge">v2.4</span>
         </div>
         <div class="status-bar">
             <span>📄 固定: <span id="fixedCount">0</span> | 🔍 扫描: <span id="scannedCount">0</span></span>
@@ -569,46 +902,53 @@
             <span id="statusText">就绪</span>
         </div>
     </div>
-    
+
     <div class="main-body">
         <!-- 左侧：MySQL 查询 -->
-        <div class="fixed-panel" style="width:40%">
+        <div class="fixed-panel">
             <div class="panel-header">
                 <h2>🗄️ MySQL 查询</h2>
                 <span class="count">3307/wjr_trove</span>
             </div>
-            <div class="sql-panel" style="padding:12px;display:flex;flex-direction:column;height:calc(100% - 45px);gap:10px">
-                <!-- 新增：用 wrap 包住 textarea，用于定位补全下拉框 -->
+            <div class="sql-panel">
                 <div class="sql-input-wrap">
-                    <textarea id="sqlInput" rows="4" style="width:100%;height:100%;background:rgba(15,23,42,0.5);border:1px solid rgba(139,92,246,0.25);color:#e2e8f0;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;padding:12px;border-radius:8px;resize:none;outline:none;transition:all 0.2s;line-height:1.5" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(139,92,246,0.25)';this.style.boxShadow='none'">SELECT name, status, created FROM flows ORDER BY created DESC LIMIT 10</textarea>
+                    <textarea id="sqlInput" class="sql-textarea" onkeydown="if(event.key==='Enter'&&event.ctrlKey){event.preventDefault();executeSQL();}">SELECT name, status, created FROM flows ORDER BY created DESC LIMIT 10</textarea>
                     <div class="sql-suggest" id="sqlSuggest"></div>
                 </div>
-                <div style="display:flex;gap:10px">
+                <div style="display:flex;gap:8px;flex-shrink:0">
                     <button class="btn btn-primary" onclick="executeSQL()" style="flex:1">▶ 执行查询</button>
-                    <button class="btn" onclick="showTables()" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;box-shadow:0 2px 8px rgba(16,185,129,0.3)" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">📋 所有表</button>
+                    <button class="btn btn-success" onclick="showTables()">📋 所有表</button>
+                    <button class="btn btn-success" id="sqlHistBtn" onclick="toggleSqlHistory()" title="执行历史">🕘 历史</button>
                 </div>
-                <div id="sqlResult" style="flex:1;overflow:auto;background:rgba(15,23,42,0.3);border-radius:8px;padding:10px;font-size:11px;font-family:'JetBrains Mono','Fira Code',monospace;border:1px solid rgba(139,92,246,0.2);position:relative">
-                    <span class="hint" style="color:#64748b">结果将显示在这里...</span>
+                <div id="sqlResult" class="sql-result">
+                    <span style="color:#64748b">结果将显示在这里...</span>
                 </div>
             </div>
         </div>
 
-        <!-- 中间：KSCC扫描接口 -->
-        <div class="scanned-panel" style="width:25%">
+        <!-- 中间：KSCC 扫描接口 / 资源列表 -->
+        <div class="scanned-panel">
             <div class="panel-header">
-                <h2>🔍 扫描接口 (KSCC AI)</h2>
+                <div style="display:flex;gap:2px;">
+                    <span class="mid-tab active" data-mt="api" onclick="switchMidTab('api')">🔍 扫描接口</span>
+                    <span class="mid-tab" data-mt="res" onclick="switchMidTab('res')">📦 资源列表</span>
+                </div>
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="discoverAPIs()">🔍 扫描</button>
-                    <button class="btn btn-success" onclick="runAllTests()">▶ 运行</button>
+                    <button class="btn btn-primary" id="midBtnScan" onclick="discoverAPIs()">🔍 扫描</button>
+                    <button class="btn btn-success" id="midBtnRun" onclick="runAllTests()">▶ 运行</button>
+                    <button class="btn btn-primary" id="midBtnRefresh" onclick="loadResources()" style="display:none">🔄 刷新</button>
                 </div>
             </div>
             <div class="api-list-container" id="scannedApiList">
                 <div class="hint-text">点击 "扫描" 发现 API</div>
             </div>
+            <div class="api-list-container" id="resourceList" style="display:none;">
+                <div class="hint-text">点击 "🔄 刷新" 加载资源列表</div>
+            </div>
         </div>
-        
-        <!-- 右侧：请求/响应 -->
-        <div class="test-panel" style="width:35%">
+
+        <!-- 右侧：请求测试 -->
+        <div class="test-panel">
             <div class="panel-header">
                 <h2>🚀 请求测试</h2>
                 <button class="clear-btn" onclick="clearResults()">清空</button>
@@ -619,60 +959,110 @@
                     <span class="hl">X-Auth-Token:</span> &lt;AUTH_TOKEN&gt; &nbsp;
                     <span class="hl">X-KSC-APPLICATION-NAME:</span> ktrove
                 </div>
-                
-                <div class="row">
-                    <label>方法:</label>
-                    <select id="method">
+
+                <div class="tf-row">
+                    <label>方法</label>
+                    <select id="method" onchange="buildCurl()">
                         <option value="GET">GET</option>
-                        <option value="POST">POST</option>
+                        <option value="POST" selected>POST</option>
                         <option value="PUT">PUT</option>
                         <option value="DELETE">DELETE</option>
                     </select>
-                    <input type="text" id="apiPath" placeholder="/v1.0/{tenant_id}/mongodb-repset" style="flex:1;font-size:10px;">
+                    <input type="text" id="apiPath" placeholder="/v1.0/{tenant_id}/mongodb-repset">
                     <button class="send-btn" onclick="sendRequest()">发送</button>
                 </div>
-                <div class="row" style="margin-bottom:2px;">
-                    <label>tenant:</label>
-                    <input type="text" id="tenantId" value="092019a81f644fa0a6643153f25a8d3d" style="flex:1;font-size:10px;">
+
+                <div class="tf-row">
+                    <label>tenant</label>
+                    <input type="text" id="tenantId" value="092019a81f644fa0a6643153f25a8d3d">
                 </div>
-                <div class="row" style="margin-bottom:2px;">
-                    <label>Headers:</label>
-                    <textarea id="requestHeaders" rows="2" placeholder='{"X-Auth-Project-Id":"<PROJECT_ID>"}' style="height:40px;font-size:11px;"></textarea>
-                </div>
-                <div class="row action-row" id="actionRow" style="margin-bottom:2px;">
-                    <label>action:</label>
+
+                <div class="tf-row action-row" id="actionRow">
+                    <label>action</label>
                     <select id="actionSelect" onchange="onActionChange()"></select>
                 </div>
-                <div class="row" style="margin-bottom:2px;">
-                    <label>Body:</label>
-                    <textarea id="requestBody" rows="6" placeholder='{"key":"value"}' style="height:110px;font-size:10px;"></textarea>
+
+                <div class="tf-collapse" id="paramsCollapse">
+                    <div class="tf-collapse-head" onclick="toggleCollapse('paramsCollapse')">
+                        <span class="arrow">▶</span>
+                        <span class="title">Params</span>
+                        <span class="meta" id="paramsMeta">?limit=10&page=1</span>
+                    </div>
+                    <div class="tf-collapse-body">
+                        <input type="text" id="requestParams" placeholder="?limit=10&page=1" oninput="onParamsInput()" style="width:100%;padding:6px 10px;background:rgba(15,23,42,0.6);border:1px solid rgba(124,58,237,0.2);border-radius:6px;color:#e2e8f0;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;">
+                    </div>
                 </div>
-                <div class="row" style="margin-bottom:2px;">
-                    <label>Params:</label>
-                    <input type="text" id="requestParams" placeholder="?limit=10&page=1" style="flex:1;font-size:10px;">
+
+                <div class="tf-collapse" id="headersCollapse">
+                    <div class="tf-collapse-head" onclick="toggleCollapse('headersCollapse')">
+                        <span class="arrow">▶</span>
+                        <span class="title">Headers</span>
+                        <span class="meta" id="headersMeta">（可选，JSON）</span>
+                    </div>
+                    <div class="tf-collapse-body">
+                        <textarea id="requestHeaders" class="small-ta" placeholder='{"X-Auth-Project-Id":"<PROJECT_ID>"}' oninput="onHeadersInput()"></textarea>
+                    </div>
                 </div>
-                
+
+                <div class="tf-collapse" id="bodyCollapse">
+                    <div class="tf-collapse-head open" onclick="toggleCollapse('bodyCollapse')">
+                        <span class="arrow">▶</span>
+                        <span class="title">Body</span>
+                        <span class="meta" id="bodyMeta">（JSON）</span>
+                    </div>
+                    <div class="tf-collapse-body open">
+                        <textarea id="requestBody" class="body-ta" placeholder='{"key":"value"}'></textarea>
+                    </div>
+                </div>
+
                 <div class="stats-row">
                     <span>✅ 通过: <span id="passedTests">0</span></span>
                     <span>❌ 失败: <span id="failedTests">0</span></span>
                     <span>📊 总: <span id="totalTests">0</span></span>
                 </div>
 
+                <!-- 响应 + 流程图 + 执行记录 -->
                 <div class="response-wrap">
                     <div class="response-header">
-                        <span class="label">📋 响应</span>
-                        <input type="text" id="respSearch" placeholder="🔍 搜索响应..." oninput="filterResponse()" style="flex:1;margin:0 8px;padding:3px 8px;background:#1a1d29;color:#e6edf3;border:1px solid #333a4d;border-radius:4px;font-size:11px;outline:none;">
+                        <div class="resp-tabs">
+                            <span class="resp-tab active" data-tab="resp" onclick="switchRespTab('resp')">📋 响应</span>
+                            <span class="resp-tab" data-tab="flow" onclick="switchRespTab('flow')">🔀 流程图</span>
+                            <span class="resp-tab" data-tab="exec" onclick="switchRespTab('exec')">📊 执行记录</span>
+                        </div>
+                        <input type="text" id="respSearch" class="resp-search" placeholder="🔍 搜索响应..." oninput="filterResponse()">
                         <button class="copy-resp-btn" id="copyRespBtn" onclick="copyResponse()">复制响应</button>
                     </div>
                     <div class="response-area" id="responseArea"><span class="hint">等待请求...</span></div>
+                    <div class="response-area" id="flowArea" style="display:none;">
+                        <span class="hint">点击「发送」后自动生成流程图...</span>
+                    </div>
+                    <div class="response-area" id="execArea" style="display:none;padding:8px;">
+                        <div style="display:flex;flex-direction:column;gap:8px;height:100%;font-family:'Segoe UI',system-ui,sans-serif;">
+                            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+                                <label style="font-size:11px;color:#94a3b8;min-width:60px;">product_id</label>
+                                <input type="text" id="execProductId" class="exec-input" placeholder="从 Body 自动提取或手动填写">
+                                <button class="exec-btn" onclick="loadExecFlowList()">查询</button>
+                            </div>
+                            <div style="font-size:10px;color:#64748b;flex-shrink:0;">
+                                提示：从请求 Body 的 <code style="color:#c4b5fd;">mongodb_repset.id</code> 自动提取
+                            </div>
+                            <div id="execFlowList" style="flex:1;overflow:auto;font-size:11px;"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="response-wrap" style="flex-shrink:0;">
+                <!-- curl -->
+                <div class="response-wrap curl-wrap" id="curlWrap">
                     <div class="response-header">
-                        <span class="label">🔧 curl 命令</span>
-                        <button class="copy-resp-btn" id="copyCurlBtn" onclick="copyCurl()">复制 curl</button>
+                        <span class="label">🔧 curl</span>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <button class="copy-resp-btn" id="copyCurlBtn" onclick="copyCurl()">复制</button>
+                            <button class="copy-resp-btn" id="toggleCurlBtn" onclick="toggleCurl()" title="折叠/展开">▾</button>
+                        </div>
                     </div>
-                    <div class="response-area" id="curlArea" style="min-height:40px;max-height:90px;"><span class="hint">填写参数后生成 curl...</span></div>
+                    <div class="response-area" id="curlArea">
+                        <span class="hint">填写参数后生成 curl...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -688,7 +1078,58 @@ var testResults = [];
 var apiRegistry = {};
 
 // ============================================================
-// MySQL 查询功能
+// 折叠区
+// ============================================================
+function toggleCollapse(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var head = el.querySelector('.tf-collapse-head');
+    var body = el.querySelector('.tf-collapse-body');
+    var isOpen = body.classList.contains('open');
+    if (isOpen) {
+        body.classList.remove('open');
+        head.classList.remove('open');
+    } else {
+        body.classList.add('open');
+        head.classList.add('open');
+    }
+}
+
+function onParamsInput() {
+    var v = document.getElementById('requestParams').value.trim();
+    document.getElementById('paramsMeta').textContent = v || '?limit=10&page=1';
+    buildCurl();
+}
+function onHeadersInput() {
+    var v = document.getElementById('requestHeaders').value.trim();
+    document.getElementById('headersMeta').textContent = v ? v.substring(0, 40) + (v.length > 40 ? '…' : '') : '（可选，JSON）';
+    buildCurl();
+}
+
+// ============================================================
+// 中间栏 Tab：API / 资源
+// ============================================================
+function switchMidTab(tab) {
+    var tabs = document.querySelectorAll('.mid-tab');
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.toggle('active', tabs[i].getAttribute('data-mt') === tab);
+    }
+    document.getElementById('scannedApiList').style.display = (tab === 'api') ? 'block' : 'none';
+    document.getElementById('resourceList').style.display = (tab === 'res') ? 'block' : 'none';
+
+    document.getElementById('midBtnScan').style.display = (tab === 'api') ? '' : 'none';
+    document.getElementById('midBtnRun').style.display = (tab === 'api') ? '' : 'none';
+    document.getElementById('midBtnRefresh').style.display = (tab === 'res') ? '' : 'none';
+
+    if (tab === 'res') {
+        if (!document.getElementById('resourceList').getAttribute('data-loaded')) {
+            loadResources();
+        }
+    }
+}
+
+// ============================================================
+// MySQL 查询
 // ============================================================
 function showTables() {
     document.getElementById('sqlInput').value = 'SHOW TABLES';
@@ -701,9 +1142,8 @@ function executeSQL() {
         document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">请输入 SQL 语句</span>';
         return;
     }
-
+    closeSqlHistory();
     document.getElementById('sqlResult').innerHTML = '<span style="color:#f59e0b">⏳ 执行中...</span>';
-
     fetch('/wjr-test/api/execute-sql', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -712,14 +1152,95 @@ function executeSQL() {
     .then(function(resp) { return resp.json(); })
     .then(function(result) {
         if (result.success) {
+            recordSqlHistory(sql, true);
             renderSQLResult(result.data);
         } else {
+            recordSqlHistory(sql, false);
             document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">❌ ' + (result.error || '查询失败') + '</span>';
         }
     })
     ['catch'](function(e) {
+        recordSqlHistory(sql, false);
         document.getElementById('sqlResult').innerHTML = '<span style="color:#fc8181">❌ 请求失败: ' + e.message + '</span>';
     });
+}
+
+// ============================================================
+// SQL 执行历史（localStorage，点击条目回填查询框）
+// ============================================================
+var SQL_HIST_KEY = 'wjr_sql_history';
+var SQL_HIST_MAX = 50;
+var _sqlHistOpen = false;
+
+function getSqlHistory() {
+    try { return JSON.parse(localStorage.getItem(SQL_HIST_KEY)) || []; }
+    catch (e) { return []; }
+}
+function saveSqlHistory(list) {
+    try { localStorage.setItem(SQL_HIST_KEY, JSON.stringify(list)); } catch (e) {}
+}
+function recordSqlHistory(sql, ok) {
+    var list = getSqlHistory();
+    if (list.length && list[0].sql === sql) {
+        // 连续重复执行：只更新时间与结果状态
+        list[0].time = Date.now();
+        list[0].ok = ok;
+    } else {
+        list.unshift({sql: sql, time: Date.now(), ok: ok});
+        if (list.length > SQL_HIST_MAX) list.length = SQL_HIST_MAX;
+    }
+    saveSqlHistory(list);
+    if (_sqlHistOpen) renderSqlHistory();
+}
+function toggleSqlHistory() {
+    if (_sqlHistOpen) { closeSqlHistory(); return; }
+    _sqlHistOpen = true;
+    document.getElementById('sqlHistBtn').style.borderColor = '#f59e0b';
+    renderSqlHistory();
+}
+function closeSqlHistory() {
+    if (!_sqlHistOpen) return;
+    _sqlHistOpen = false;
+    document.getElementById('sqlHistBtn').style.borderColor = '';
+    document.getElementById('sqlResult').innerHTML = '<span style="color:#64748b">结果将显示在这里...</span>';
+}
+function fmtHistTime(ts) {
+    var d = new Date(ts);
+    function p(n) { return n < 10 ? '0' + n : '' + n; }
+    return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function renderSqlHistory() {
+    var list = getSqlHistory();
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(139,92,246,0.15)">';
+    html += '<span style="color:#f59e0b;font-weight:500">🕘 执行历史 (' + list.length + '/' + SQL_HIST_MAX + ')</span>';
+    if (list.length) {
+        html += '<button onclick="clearSqlHistory()" style="padding:3px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fc8181;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:500">🗑 清空</button>';
+    }
+    html += '</div>';
+    if (!list.length) {
+        html += '<span style="color:#6b7280">暂无历史记录，执行一次 SQL 后会自动记录</span>';
+    }
+    for (var i = 0; i < list.length; i++) {
+        var h = list[i];
+        var preview = h.sql.replace(/\s+/g, ' ').trim().substring(0, 100);
+        html += '<div class="sql-hist-item" onclick="applySqlHistory(' + i + ')" title="' + escapeHTML(h.sql) + '">'
+             +  '<span class="hist-ok">' + (h.ok ? '✅' : '❌') + '</span>'
+             +  '<span class="hist-sql">' + escapeHTML(preview) + '</span>'
+             +  '<span class="hist-time">' + fmtHistTime(h.time) + '</span>'
+             +  '</div>';
+    }
+    document.getElementById('sqlResult').innerHTML = html;
+}
+function applySqlHistory(i) {
+    var h = getSqlHistory()[i];
+    if (!h) return;
+    document.getElementById('sqlInput').value = h.sql;
+    closeSqlHistory();
+}
+function clearSqlHistory() {
+    if (!confirm('确定清空全部执行历史？')) return;
+    saveSqlHistory([]);
+    renderSqlHistory();
 }
 
 function renderSQLResult(data) {
@@ -728,34 +1249,28 @@ function renderSQLResult(data) {
         container.innerHTML = '<span style="color:#6b7280">✅ 执行成功，无返回数据</span>';
         return;
     }
-
-    // 复制按钮
-    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(139,92,246,0.15)">';
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(139,92,246,0.15)">';
     html += '<span style="color:#34d399;font-weight:500">✅ 返回 ' + data.length + ' 行</span>';
-    html += '<button onclick="copySQLResult()" style="padding:4px 12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.35);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500;transition:all 0.2s" onmouseover="this.style.background=\'rgba(139,92,246,0.3)\'" onmouseout="this.style.background=\'rgba(139,92,246,0.2)\'">📋 复制结果</button>';
+    html += '<button onclick="copySQLResult()" style="padding:3px 10px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.35);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:500">📋 复制结果</button>';
     html += '</div>';
     html += '<table id="sqlResultTable" style="width:100%;border-collapse:collapse;font-size:11px;border-radius:6px;overflow:hidden">';
-
-    // 表头
     var cols = Object.keys(data[0]);
     html += '<tr style="background:linear-gradient(135deg,rgba(139,92,246,0.4),rgba(124,58,237,0.4))">';
     for (var i = 0; i < cols.length; i++) {
-        html += '<th style="padding:8px 10px;text-align:left;color:#e9d5ff;font-weight:600;border-bottom:1px solid rgba(139,92,246,0.3)">' + cols[i] + '</th>';
+        html += '<th style="padding:6px 8px;text-align:left;color:#e9d5ff;font-weight:600;border-bottom:1px solid rgba(139,92,246,0.3)">' + cols[i] + '</th>';
     }
     html += '</tr>';
-
-    // 数据行
     for (var r = 0; r < data.length; r++) {
         var row = data[r];
-        html += '<tr style="background:' + (r % 2 === 0 ? 'rgba(15,23,42,0.3)' : 'rgba(30,41,59,0.3)') + ';transition:all 0.15s" onmouseover="this.style.background=\'rgba(139,92,246,0.1)\'" onmouseout="this.style.background=\'' + (r % 2 === 0 ? 'rgba(15,23,42,0.3)' : 'rgba(30,41,59,0.3)') + '\'">';
+        var bg = r % 2 === 0 ? 'rgba(15,23,42,0.3)' : 'rgba(30,41,59,0.3)';
+        html += '<tr style="background:' + bg + '">';
         for (var c = 0; c < cols.length; c++) {
             var val = row[cols[c]];
             var display = val === null ? '<span style="color:#64748b;font-style:italic">NULL</span>' : String(val).substring(0, 100);
-            html += '<td style="padding:6px 10px;color:#e2e8f0;border-bottom:1px solid rgba(75,85,99,0.2)">' + display + '</td>';
+            html += '<td style="padding:5px 8px;color:#e2e8f0;border-bottom:1px solid rgba(75,85,99,0.2)">' + display + '</td>';
         }
         html += '</tr>';
     }
-
     html += '</table>';
     container.innerHTML = html;
 }
@@ -763,58 +1278,33 @@ function renderSQLResult(data) {
 function copySQLResult() {
     var table = document.getElementById('sqlResultTable');
     if (!table) return;
-
     var text = '';
-    var rows = table.rows;
-    for (var i = 0; i < rows.length; i++) {
-        var cells = rows[i].cells;
+    for (var i = 0; i < table.rows.length; i++) {
+        var cells = table.rows[i].cells;
         var rowText = [];
-        for (var j = 0; j < cells.length; j++) {
-            rowText.push(cells[j].textContent);
-        }
+        for (var j = 0; j < cells.length; j++) rowText.push(cells[j].textContent);
         text += rowText.join('\t') + '\n';
     }
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-            alert('✅ 已复制到剪贴板');
-        });
-    } else {
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('✅ 已复制到剪贴板');
-    }
-}
-
-// 回车执行
-if (document.getElementById('sqlInput')) {
-    document.getElementById('sqlInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && e.ctrlKey) executeSQL();
-    });
+    copyText(text, null);
+    alert('✅ 已复制到剪贴板');
 }
 
 // ============================================================
-// SQL 自动补全（新增，与上面功能完全隔离）
+// SQL 自动补全
 // ============================================================
 var SQL_META = { tables: [], columns: {} };
 var _sqlSuggestBox = null;
 var _sqlActiveIdx = -1;
 var _sqlCurrentList = [];
 
-// SQL 关键字（大写）
 var SQL_KEYWORDS = [
     'SELECT','FROM','WHERE','AND','OR','NOT','IN','LIKE','BETWEEN','IS','NULL',
     'ORDER','BY','GROUP','HAVING','LIMIT','OFFSET','ASC','DESC','AS',
     'JOIN','LEFT','RIGHT','INNER','OUTER','ON','UNION','ALL','DISTINCT',
     'INSERT','INTO','VALUES','UPDATE','SET','DELETE','CREATE','TABLE','DROP',
-    'ALTER','INDEX','SHOW','TABLES','DESCRIBE','DESC','COUNT','SUM','AVG','MAX','MIN'
+    'ALTER','INDEX','SHOW','TABLES','DESCRIBE','COUNT','SUM','AVG','MAX','MIN'
 ];
 
-// 页面加载时拉一次元数据；失败也不影响 SQL 查询功能
 function loadSQLMeta() {
     fetch('/wjr-test/api/sql-meta')
         .then(function(r) { return r.json(); })
@@ -824,10 +1314,7 @@ function loadSQLMeta() {
                 SQL_META.columns = d.columns || {};
             }
         })
-        ['catch'](function() {
-            // 静默失败，补全降级为只提示 SQL 关键字
-            SQL_META = { tables: [], columns: {} };
-        });
+        ['catch'](function() { SQL_META = { tables: [], columns: {} }; });
 }
 
 function getSQLCurrentWord() {
@@ -839,12 +1326,9 @@ function getSQLCurrentWord() {
     return m ? m[1] : '';
 }
 
-// 判断当前上下文：'table' / {type:'column', table} / 'any'
 function getSQLContext(textBeforeCursor) {
-    // 前文是 FROM / JOIN / UPDATE / INTO / TABLE 且还在写表名
     var m = textBeforeCursor.match(/\b(from|join|update|into|table)\s+[A-Za-z0-9_]*$/i);
     if (m) return 'table';
-    // 出现了 "表名." 则提示该表字段
     var c = textBeforeCursor.match(/([A-Za-z_][A-Za-z0-9_]*)\.\s*([A-Za-z0-9_]*)$/);
     if (c) return { type: 'column', table: c[1] };
     return 'any';
@@ -866,7 +1350,6 @@ function collectSQLCandidates(word, ctx) {
             if (match(cols[j])) out.push({ label: cols[j], kind: 'column' });
         }
     } else {
-        // 'any'：关键字 + 表 + 字段（去重）
         for (var k = 0; k < SQL_KEYWORDS.length; k++) {
             if (match(SQL_KEYWORDS[k])) out.push({ label: SQL_KEYWORDS[k], kind: 'keyword' });
         }
@@ -890,19 +1373,13 @@ function renderSQLSuggest(list) {
     var box = _sqlSuggestBox;
     if (!box) return;
     if (!list.length) { hideSQLSuggest(); return; }
-
     _sqlCurrentList = list;
     _sqlActiveIdx = 0;
-
     var html = '';
     for (var i = 0; i < list.length; i++) {
         var it = list[i];
-        var kindCls = it.kind === 'table' ? 'k-table'
-                    : it.kind === 'column' ? 'k-column'
-                    : 'k-keyword';
-        var kindTxt = it.kind === 'table' ? '表'
-                    : it.kind === 'column' ? '字段'
-                    : '关键字';
+        var kindCls = it.kind === 'table' ? 'k-table' : (it.kind === 'column' ? 'k-column' : 'k-keyword');
+        var kindTxt = it.kind === 'table' ? '表' : (it.kind === 'column' ? '字段' : '关键字');
         html += '<div class="sug-item' + (i === 0 ? ' active' : '') + '" data-i="' + i + '">'
               +   '<span class="sug-label">' + escapeHTML(it.label) + '</span>'
               +   '<span class="sug-kind ' + kindCls + '">' + kindTxt + '</span>'
@@ -911,19 +1388,27 @@ function renderSQLSuggest(list) {
     box.innerHTML = html;
     box.style.display = 'block';
 
-    // 定位：贴近 textarea 左下（简单可靠，避免算光标像素坐标）
-    var ta = document.getElementById('sqlInput');
-    var wrap = box.parentNode;
-    box.style.left = '12px';
-    box.style.bottom = '12px';
-    box.style.top = 'auto';
+    (function positionSuggest() {
+        var wrap = box.parentNode;
+        var wrapRect = wrap.getBoundingClientRect();
+        var boxH = Math.min(box.scrollHeight || 240, 240);
+        var viewportH = window.innerHeight || document.documentElement.clientHeight;
+        var spaceBelow = viewportH - wrapRect.bottom;
+        var spaceAbove = wrapRect.top;
+        if (spaceBelow < boxH + 12 && spaceAbove > spaceBelow) {
+            box.style.top = 'auto';
+            box.style.bottom = 'calc(100% + 4px)';
+        } else {
+            box.style.top = '100%';
+            box.style.bottom = 'auto';
+        }
+    })();
 
-    // 事件委托
     var items = box.querySelectorAll('.sug-item');
     for (var n = 0; n < items.length; n++) {
         (function(el) {
             el.onmousedown = function(e) {
-                e.preventDefault(); // 防止 textarea 失焦
+                e.preventDefault();
                 var idx = parseInt(el.getAttribute('data-i'), 10);
                 applySQLSuggest(_sqlCurrentList[idx]);
             };
@@ -945,7 +1430,6 @@ function refreshSQLActive() {
         if (i === _sqlActiveIdx) items[i].classList.add('active');
         else items[i].classList.remove('active');
     }
-    // 滚动到可视
     if (items[_sqlActiveIdx] && items[_sqlActiveIdx].scrollIntoView) {
         items[_sqlActiveIdx].scrollIntoView({ block: 'nearest' });
     }
@@ -973,14 +1457,8 @@ function onSQLInput(e) {
     var ta = e.target;
     var before = ta.value.slice(0, ta.selectionStart);
     var word = getSQLCurrentWord();
-
-    // 只有正在输入一个词、或刚输入 "." 时才提示
     var lastChar = before.slice(-1);
     if (!word && lastChar !== '.') { hideSQLSuggest(); return; }
-    if (!word && lastChar === '.') {
-        // 刚打 "." 立刻提示该表字段
-    }
-
     var ctx = getSQLContext(before);
     var list = collectSQLCandidates(word, ctx);
     renderSQLSuggest(list);
@@ -988,9 +1466,7 @@ function onSQLInput(e) {
 
 function onSQLKeydown(e) {
     var box = _sqlSuggestBox;
-    if (!box || box.style.display === 'none') {
-        return;
-    }
+    if (!box || box.style.display === 'none') return;
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         _sqlActiveIdx = Math.min(_sqlActiveIdx + 1, _sqlCurrentList.length - 1);
@@ -1001,9 +1477,7 @@ function onSQLKeydown(e) {
         refreshSQLActive();
     } else if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
-        if (_sqlCurrentList[_sqlActiveIdx]) {
-            applySQLSuggest(_sqlCurrentList[_sqlActiveIdx]);
-        }
+        if (_sqlCurrentList[_sqlActiveIdx]) applySQLSuggest(_sqlCurrentList[_sqlActiveIdx]);
     } else if (e.key === 'Escape') {
         hideSQLSuggest();
     }
@@ -1014,7 +1488,7 @@ function escapeHTML(s) {
 }
 
 // ============================================================
-// KSCC扫描功能
+// KSCC 扫描
 // ============================================================
 function updateStatus(text, type) {
     var dot = document.getElementById('statusDot');
@@ -1047,14 +1521,9 @@ function discoverAPIs() {
             updateStatus('扫描失败: ' + result.error, 'error');
         }
     })
-    ['catch'](function(e) {
-        updateStatus('请求失败', 'error');
-    });
+    ['catch'](function(e) { updateStatus('请求失败', 'error'); });
 }
 
-// ============================================================
-// 渲染扫描接口（按 category 分组，组内 GET→POST→其它，再按 path 字母序）
-// ============================================================
 var CATEGORY_ORDER = ['副本集', '分片集群', '通用', '公共', '公共接口', '副本集接口', '分片集群接口'];
 var METHOD_ORDER = { 'GET': 0, 'POST': 1, 'PUT': 2, 'DELETE': 3 };
 
@@ -1064,8 +1533,6 @@ function renderScannedApis() {
         container.innerHTML = '<div class="hint-text">点击 "扫描" 发现 API</div>';
         return;
     }
-
-    // 1) 按 category 分组
     var groups = {};
     for (var i = 0; i < scannedApis.length; i++) {
         var api = scannedApis[i];
@@ -1073,8 +1540,6 @@ function renderScannedApis() {
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(api);
     }
-
-    // 2) 组名排序：优先按预定义顺序，其余字母序
     var catKeys = Object.keys(groups);
     catKeys.sort(function(a, b) {
         var ia = CATEGORY_ORDER.indexOf(a);
@@ -1085,13 +1550,10 @@ function renderScannedApis() {
         return ia - ib;
     });
 
-    // 3) 逐组渲染
     var html = '';
     for (var k = 0; k < catKeys.length; k++) {
         var cat = catKeys[k];
         var list = groups[cat].slice();
-
-        // 组内排序：方法优先级 → path 字母序 → name 字母序
         list.sort(function(a, b) {
             var ma = METHOD_ORDER[a.method] !== undefined ? METHOD_ORDER[a.method] : 99;
             var mb = METHOD_ORDER[b.method] !== undefined ? METHOD_ORDER[b.method] : 99;
@@ -1101,38 +1563,29 @@ function renderScannedApis() {
             if (pa !== pb) return pa.localeCompare(pb);
             return (a.name || '').localeCompare(b.name || '');
         });
-
-        // 组标题
         html += '<div class="api-group-header">'
               +   '<span class="api-group-title">' + escapeHTML(cat) + '</span>'
               +   '<span class="api-group-count">' + list.length + '</span>'
               + '</div>';
-
-        // 组内条目
         for (var j = 0; j < list.length; j++) {
             var api = list[j];
-            var regId = 'scanned_' + k + '_' + j;   // 用组序号+组内序号，避免 key 冲突
+            var regId = 'scanned_' + k + '_' + j;
             apiRegistry[regId] = api;
-
-            var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ?
-                '<span class="risk-badge risk-high">高</span>' : '';
+            var risk = (api.ai_analysis && api.ai_analysis.risk_level === 'high') ? '<span class="risk-badge risk-high">高</span>' : '';
             var name = api.name || api.path.split('/').pop() || '未知';
             var desc = api.description ? '<div class="api-desc" title="' + escapeHTML(api.description) + '">' + escapeHTML(api.description) + '</div>' : '';
             var actBadge = (api.actions && api.actions.length) ? '<span class="category-tag">' + api.actions.length + '动作</span>' : '';
-
             html += '<div class="api-item" onclick="selectAPI(\''
                   +  api.path.replace(/'/g, "\\'") + '\', \''
                   +  api.method + '\', apiRegistry[\'' + regId + '\'])">'
                   +   '<div class="api-line1">'
                   +     '<span class="method-tag method-' + api.method + '">' + api.method + '</span>'
                   +     '<span class="api-name" title="' + escapeHTML(name) + '">' + escapeHTML(name) + '</span>'
-                  +     actBadge
-                  +     risk
+                  +     actBadge + risk
                   +   '</div>'
                   +   '<div class="api-line2">'
                   +     '<span class="path-text" title="' + escapeHTML(api.path) + '">' + escapeHTML(api.path) + '</span>'
-                  +   '</div>'
-                  +   desc
+                  +   '</div>' + desc
                   + '</div>';
         }
     }
@@ -1140,18 +1593,16 @@ function renderScannedApis() {
 }
 
 // ============================================================
-// 选择API
+// 选择 API
 // ============================================================
 var currentApi = null;
 function selectAPI(path, method, apiObj) {
     currentApi = apiObj || null;
     document.getElementById('apiPath').value = path;
-    if (method) {
-        document.getElementById('method').value = method;
-    }
+    if (method) document.getElementById('method').value = method;
+
     var actionRow = document.getElementById('actionRow');
     var actionSel = document.getElementById('actionSelect');
-    // 有 actions 子列表 -> 渲染下拉框
     if (apiObj && apiObj.actions && apiObj.actions.length) {
         actionRow.classList.add('show');
         var opts = '<option value="">-- 选择 action --</option>';
@@ -1163,7 +1614,6 @@ function selectAPI(path, method, apiObj) {
     } else {
         actionRow.classList.remove('show');
         actionSel.innerHTML = '';
-        // 有 body_template -> 直接填 body
         if (apiObj && apiObj.body_template) {
             try {
                 document.getElementById('requestBody').value = JSON.stringify(JSON.parse(apiObj.body_template), null, 2);
@@ -1172,6 +1622,11 @@ function selectAPI(path, method, apiObj) {
             }
         }
     }
+
+    var flowArea = document.getElementById('flowArea');
+    flowArea.setAttribute('data-loaded', '0');
+    flowArea.innerHTML = '<span class="hint">点击「流程图」Tab 或发送请求后自动分析...</span>';
+
     buildCurl();
 }
 
@@ -1190,12 +1645,13 @@ function onActionChange() {
 }
 
 // ============================================================
-// 复制 / curl 生成
+// 复制 / curl
 // ============================================================
 function copyText(text, btnId) {
     if (!text) return;
-    var btn = document.getElementById(btnId);
+    var btn = btnId ? document.getElementById(btnId) : null;
     var done = function() {
+        if (!btn) return;
         var orig = btn.textContent;
         btn.textContent = '✅ 已复制';
         btn.classList.add('copied');
@@ -1213,14 +1669,12 @@ function copyText(text, btnId) {
 }
 function copyResponse() {
     var area = document.getElementById('responseArea');
-    // 优先复制完整原文（搜索过滤时界面只显示了匹配行）
     copyText(lastResponseText || area.innerText || area.textContent, 'copyRespBtn');
 }
 function copyCurl() {
     copyText(document.getElementById('curlArea').innerText || document.getElementById('curlArea').textContent, 'copyCurlBtn');
 }
 function escapeShell(s) {
-    // 单引号转义：' -> '\''
     return "'" + String(s).replace(/'/g, "'\\''") + "'";
 }
 function buildCurl() {
@@ -1231,10 +1685,13 @@ function buildCurl() {
     var body = document.getElementById('requestBody').value;
     var params = document.getElementById('requestParams').value;
 
-    if (!path) { document.getElementById('curlArea').innerHTML = '<span class="hint">填写参数后生成 curl...</span>'; return; }
+    var area = document.getElementById('curlArea');
+    if (!path) {
+        area.innerHTML = '<span class="hint">填写参数后生成 curl...</span>';
+        return;
+    }
 
     var realPath = path.replace(/{tenant_id}/g, tenantId);
-    // page -> offset
     var qs = params.replace(/^\?/, '');
     if (qs) {
         var parts = qs.split('&');
@@ -1250,7 +1707,6 @@ function buildCurl() {
     }
     var url = 'http://<KSCC_HOST>:9777' + realPath + (qs ? '?' + qs : '');
 
-    // 默认 header
     var defaultHeaders = {
         'X-Auth-Project-Id': '<PROJECT_ID>',
         'X-Auth-Token': '<AUTH_TOKEN>',
@@ -1258,27 +1714,50 @@ function buildCurl() {
         'X-KSC-APPLICATION-NAME': 'ktrove',
         'Accept': 'application/json'
     };
-    // 只有非 GET 请求才加 Content-Type
-    if (method !== 'GET') {
-        defaultHeaders['Content-Type'] = 'application/json';
-    }
+    if (method !== 'GET') defaultHeaders['Content-Type'] = 'application/json';
     try { var extra = headersStr ? JSON.parse(headersStr) : {}; } catch (e) { var extra = {}; }
-    for (var k in extra) { defaultHeaders[k] = extra[k]; }
+    for (var k in extra) defaultHeaders[k] = extra[k];
 
-    // 构建 curl 命令
     var cmd = 'curl';
-    // GET 请求不需要 -X
-    if (method !== 'GET') {
-        cmd += ' -X ' + method;
+    if (method !== 'GET') cmd += ' -X ' + method;
+    for (var hk in defaultHeaders) {
+        cmd += ' \\\n  -H ' + escapeShell(hk + ': ' + defaultHeaders[hk]);
     }
-    for (var k in defaultHeaders) {
-        cmd += ' \\\n  -H ' + escapeShell(k + ': ' + defaultHeaders[k]);
-    }
-    if (body && method !== 'GET') {
-        cmd += ' \\\n  -d ' + escapeShell(body);
-    }
+    if (body && method !== 'GET') cmd += ' \\\n  -d ' + escapeShell(body);
     cmd += ' \\\n  ' + escapeShell(url);
-    document.getElementById('curlArea').textContent = cmd;
+
+    area.innerHTML = highlightCurl(cmd);
+}
+
+function highlightCurl(cmd) {
+    if (!cmd) return '';
+    var esc = cmd.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var lines = esc.split('\n');
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+        var L = lines[i];
+        L = L.replace(/^(\s*)(curl)(\s|$)/, '$1<span class="ck-cmd">$2</span>$3');
+        L = L.replace(/(-X\s+)([A-Z]+)/g, '$1<span class="ck-opt">$2</span>');
+        L = L.replace(/(-H\s+')([^:']+)(:)/g, '$1<span class="ck-opt">$2</span>$3');
+        L = L.replace(/(-d\s+)(.*)$/g, '$1<span class="ck-val">$2</span>');
+        L = L.replace(/(https?:\/\/[^\s'"]+)/g, '<span class="ck-url">$1</span>');
+        out.push(L);
+    }
+    return out.join('\n');
+}
+
+var curlCollapsed = false;
+function toggleCurl() {
+    curlCollapsed = !curlCollapsed;
+    var wrap = document.getElementById('curlWrap');
+    var btn = document.getElementById('toggleCurlBtn');
+    if (curlCollapsed) {
+        wrap.classList.add('collapsed');
+        btn.textContent = '▸';
+    } else {
+        wrap.classList.remove('collapsed');
+        btn.textContent = '▾';
+    }
 }
 
 // ============================================================
@@ -1298,6 +1777,11 @@ function sendRequest() {
     var area = document.getElementById('responseArea');
     area.textContent = '⏳ 请求中...';
     document.getElementById('respSearch').value = '';
+
+    var flowArea = document.getElementById('flowArea');
+    flowArea.setAttribute('data-loaded', '0');
+    flowArea.innerHTML = '<span class="hint">点击「流程图」Tab 或稍候自动分析...</span>';
+
     buildCurl();
 
     var reqBody = {
@@ -1322,6 +1806,7 @@ function sendRequest() {
             document.getElementById('responseTime').textContent = data.elapsed + 's';
             updateStatus('完成 (' + data.status_code + ')', 'ready');
             bumpTestCount(data.status_code < 400);
+            fetchFlowTrace();
         } else {
             setResponse('❌ 错误: ' + result.error);
             updateStatus('请求失败', 'error');
@@ -1336,35 +1821,27 @@ function sendRequest() {
 }
 
 // ============================================================
-// 响应搜索：保存原文，按关键字过滤并高亮
+// 响应搜索
 // ============================================================
 var lastResponseText = '';
-
 function setResponse(text) {
     lastResponseText = text || '';
     filterResponse();
 }
-
 function resetResponse(hintHtml) {
     lastResponseText = '';
     document.getElementById('respSearch').value = '';
     document.getElementById('responseArea').innerHTML = hintHtml || '<span class="hint">等待请求...</span>';
 }
-
 function filterResponse() {
     var area = document.getElementById('responseArea');
-    if (!lastResponseText) { return; }
+    if (!lastResponseText) return;
     var kw = document.getElementById('respSearch').value;
-    if (!kw) {
-        area.textContent = lastResponseText;
-        return;
-    }
-    var lower = lastResponseText.toLowerCase();
-    var kwl = kw.toLowerCase();
+    if (!kw) { area.textContent = lastResponseText; return; }
     var lines = lastResponseText.split('\n');
     var out = [];
     for (var i = 0; i < lines.length; i++) {
-        if (lines[i].toLowerCase().indexOf(kwl) !== -1) {
+        if (lines[i].toLowerCase().indexOf(kw.toLowerCase()) !== -1) {
             out.push(highlightLine(lines[i], kw));
         }
     }
@@ -1375,7 +1852,6 @@ function filterResponse() {
         area.innerHTML = out.join('\n');
     }
 }
-
 function highlightLine(line, kw) {
     var esc = function(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
     var lower = line.toLowerCase();
@@ -1397,23 +1873,18 @@ function bumpTestCount(passed) {
     var f = document.getElementById('failedTests');
     var t = document.getElementById('totalTests');
     t.textContent = parseInt(t.textContent, 10) + 1;
-    if (passed) { p.textContent = parseInt(p.textContent, 10) + 1; }
-    else { f.textContent = parseInt(f.textContent, 10) + 1; }
+    if (passed) p.textContent = parseInt(p.textContent, 10) + 1;
+    else f.textContent = parseInt(f.textContent, 10) + 1;
 }
 
 // ============================================================
 // 运行所有测试
 // ============================================================
 function runAllTests() {
-    var allApis = fixedApis.concat(scannedApis);
-    if (allApis.length === 0) {
-        alert('请先加载固定接口或点击 "扫描"');
-        return;
-    }
-    
+    if (scannedApis.length === 0) { alert('请先点击 "扫描"'); return; }
     var testCases = [];
-    for (var i = 0; i < Math.min(allApis.length, 50); i++) {
-        var api = allApis[i];
+    for (var i = 0; i < Math.min(scannedApis.length, 50); i++) {
+        var api = scannedApis[i];
         testCases.push({
             name: (api.name || api.path) + ' (' + api.method + ')',
             method: api.method,
@@ -1421,9 +1892,7 @@ function runAllTests() {
             expected_status: 200
         });
     }
-    
     updateStatus('运行测试中...', 'loading');
-    
     fetch('/wjr-test/api/run-tests', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1432,13 +1901,10 @@ function runAllTests() {
     .then(function(resp) { return resp.json(); })
     .then(function(result) {
         if (result.success) {
-            testResults = result.data.results;
             document.getElementById('passedTests').textContent = result.data.passed;
             document.getElementById('failedTests').textContent = result.data.failed;
             document.getElementById('totalTests').textContent = result.data.total_tests;
             updateStatus('通过 ' + result.data.passed + '/' + result.data.total_tests, 'ready');
-            
-            var area = document.getElementById('responseArea');
             var summary = '📊 测试结果摘要\n';
             summary += '总计: ' + result.data.total_tests + '\n';
             summary += '通过: ' + result.data.passed + '\n';
@@ -1450,16 +1916,11 @@ function runAllTests() {
                     var err = result.data.summary.errors[i];
                     summary += '  - ' + err.test + ': ' + err.error + '\n';
                 }
-                if (result.data.summary.errors.length > 5) {
-                    summary += '  ... 还有 ' + (result.data.summary.errors.length - 5) + ' 个失败\n';
-                }
             }
             setResponse(summary);
         }
     })
-    ['catch'](function(e) {
-        updateStatus('测试失败', 'error');
-    });
+    ['catch'](function(e) { updateStatus('测试失败', 'error'); });
 }
 
 function clearResults() {
@@ -1467,49 +1928,705 @@ function clearResults() {
     document.getElementById('failedTests').textContent = '0';
     document.getElementById('totalTests').textContent = '0';
     resetResponse();
+    var flowArea = document.getElementById('flowArea');
+    flowArea.setAttribute('data-loaded', '0');
+    flowArea.innerHTML = '<span class="hint">点击「发送」后自动生成流程图...</span>';
 }
 
 // ============================================================
-// 回车快捷键
+// Tab 切换（3 个 Tab）
+// ============================================================
+var currentRespTab = 'resp';
+function switchRespTab(tab) {
+    currentRespTab = tab;
+    var tabs = document.querySelectorAll('.resp-tab');
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab') === tab);
+    }
+    document.getElementById('responseArea').style.display = (tab === 'resp') ? 'block' : 'none';
+    document.getElementById('flowArea').style.display = (tab === 'flow') ? 'block' : 'none';
+    var execArea = document.getElementById('execArea');
+    if (execArea) execArea.style.display = (tab === 'exec') ? 'block' : 'none';
+
+    document.getElementById('respSearch').style.display = (tab === 'resp') ? '' : 'none';
+
+    var copyBtn = document.getElementById('copyRespBtn');
+    copyBtn.textContent = (tab === 'exec') ? '🔄 刷新' :
+                          (tab === 'flow') ? '复制流程图' : '复制响应';
+    copyBtn.setAttribute('onclick',
+        (tab === 'exec') ? 'loadExecFlowList()' :
+        (tab === 'flow') ? 'copyFlow()' : 'copyResponse()');
+
+    if (tab === 'flow') {
+        var flowArea = document.getElementById('flowArea');
+        if (flowArea.getAttribute('data-loaded') !== '1') fetchFlowTrace();
+    }
+    if (tab === 'exec') {
+        autoFillProductId();
+    }
+}
+
+// ============================================================
+// 流程图
+// ============================================================
+var lastFlowData = null;
+function fetchFlowTrace() {
+    var flowArea = document.getElementById('flowArea');
+    var method = document.getElementById('method').value;
+    var path = document.getElementById('apiPath').value;
+    var body = document.getElementById('requestBody').value;
+    var actionSel = document.getElementById('actionSelect');
+    var action = '';
+    if (actionSel && actionSel.value !== '' && currentApi && currentApi.actions) {
+        var idx = parseInt(actionSel.value, 10);
+        if (!isNaN(idx) && currentApi.actions[idx]) action = currentApi.actions[idx].key;
+    }
+    if (!path) {
+        flowArea.innerHTML = '<span class="hint">请先选择或输入 API 路径</span>';
+        return;
+    }
+    flowArea.innerHTML = '<div style="text-align:center;padding:24px 0;color:#a78bfa;font-family:\'Segoe UI\',sans-serif">'
+        + '<div style="font-size:20px;margin-bottom:6px">🔀</div>'
+        + '<div>正在分析请求流程...</div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:6px">调用 KSCC /flow-trace，约需 10-60 秒</div>'
+        + '</div>';
+
+    var payload = { path: path, method: method, action: action, body: body || '' };
+    fetch('/wjr-test/api/flow-trace', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            lastFlowData = result.data;
+            renderFlowTrace(result.data);
+            flowArea.setAttribute('data-loaded', '1');
+        } else {
+            flowArea.innerHTML = '<span style="color:#f87171">❌ ' + escapeHTML(result.error || '分析失败') + '</span>';
+        }
+    })
+    ['catch'](function(e) {
+        flowArea.innerHTML = '<span style="color:#f87171">❌ 请求失败: ' + escapeHTML(e.message) + '</span>';
+    });
+}
+
+function renderFlowTrace(data) {
+    var area = document.getElementById('flowArea');
+    if (data.degraded || !data.nodes || data.nodes.length === 0) {
+        var html = '<div class="flow-degraded" style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+                 + '<span>⚠️ AI 未返回结构化流程图，以下为原始分析内容：</span>'
+                 + '<button onclick="refreshFlowTrace()" title="重新调用 AI 生成流程图" style="padding:3px 12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:11px;flex-shrink:0">🔄 重新分析</button>'
+                 + '</div>';
+        html += '<div style="font-size:11px;line-height:1.7;color:#cbd5e1;white-space:pre-wrap;font-family:\'Segoe UI\',system-ui,sans-serif">'
+              + escapeHTML(data.raw || '无内容') + '</div>';
+        area.innerHTML = html;
+        return;
+    }
+
+    var layerOrder = ['ktrove-api', 'ktrove-taskmanager', 'flow', 'task', 'subtask'];
+    var layerNames = {
+        'ktrove-api': 'KTROVE-API（接口/参数/元数据）',
+        'ktrove-taskmanager': 'KTROVE-TASKMANAGER（任务调度）',
+        'flow': 'FLOW（工作流）',
+        'task': 'TASK（任务）',
+        'subtask': 'SUBTASK（子任务）',
+        'unknown': '其它'
+    };
+    var groups = {};
+    for (var i = 0; i < data.nodes.length; i++) {
+        var n = data.nodes[i];
+        var L = n.layer || 'unknown';
+        if (!groups[L]) groups[L] = [];
+        groups[L].push(n);
+    }
+    for (var k in groups) {
+        if (layerOrder.indexOf(k) === -1) layerOrder.push(k);
+    }
+
+    var html = '<div class="flow-canvas">';
+    html += '<div class="flow-api-line" style="display:flex;align-items:center;gap:8px">';
+    html += '<span class="method-tag method-' + (data.api.method || 'GET') + '">' + (data.api.method || '') + '</span>';
+    html += '<span class="url" style="flex:1;min-width:0">' + escapeHTML(data.api.path || '') + '</span>';
+    html += '<button onclick="refreshFlowTrace()" title="重新调用 AI 生成流程图" style="padding:3px 12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:11px;flex-shrink:0">🔄 重新分析</button>';
+    html += '</div>';
+    if (data.summary) {
+        html += '<div class="flow-summary">💡 ' + escapeHTML(data.summary) + '</div>';
+    }
+
+    var firstLayer = true;
+    for (var li = 0; li < layerOrder.length; li++) {
+        var L = layerOrder[li];
+        var list = groups[L];
+        if (!list || list.length === 0) continue;
+        if (!firstLayer) {
+            html += '<div class="flow-arrow">↓<span class="arrow-label">调用</span></div>';
+        }
+        firstLayer = false;
+        html += '<div class="flow-layer">';
+        html += '<span class="flow-layer-label l-' + L + '">' + (layerNames[L] || L) + '</span>';
+        for (var j = 0; j < list.length; j++) {
+            var n = list[j];
+            html += '<div class="flow-node">';
+            html += '<div class="fn-title">' + escapeHTML(n.title || '(未命名)') + '</div>';
+            if (n.detail) html += '<div class="fn-detail">' + escapeHTML(n.detail) + '</div>';
+            if (n.file) html += '<div class="fn-file">' + escapeHTML(n.file) + '</div>';
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+    html += '</div>';
+    area.innerHTML = html;
+}
+
+function refreshFlowTrace() {
+    document.getElementById('flowArea').setAttribute('data-loaded', '0');
+    fetchFlowTrace();
+}
+
+function retryFlow(flowId) {
+    if (!flowId) return;
+    if (!confirm('重试该 Flow？\n\n将执行:\n1. 把卡住的 task/sub_task(RUNNING/TIMEOUT/TERMINATED) 重置为 FAILED\n2. 触发 flow-run 重新执行\n\n(FLOW 正在真实运行中会被拒绝)')) return;
+    var btn = event && event.target ? event.target : null;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 重试中...'; }
+    fetch('/wjr-test/api/flow-retry', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({flow_id: flowId})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (btn) { btn.disabled = false; btn.textContent = '🔁 重试此Flow'; }
+        if (d.success) {
+            showToast('✅ ' + (d.message || '已重置并触发flow-run'), 3000);
+            setTimeout(function() { loadFlowDetail(flowId); }, 1500);
+        } else {
+            showToast('❌ ' + (d.error || '重试失败'), 4000);
+        }
+    })
+    ['catch'](function(e) {
+        if (btn) { btn.disabled = false; btn.textContent = '🔁 重试此Flow'; }
+        showToast('❌ 请求失败: ' + e.message, 4000);
+    });
+}
+
+function copyFlow() {
+    if (!lastFlowData) return;
+    var text;
+    if (lastFlowData.degraded) {
+        text = lastFlowData.raw || '';
+    } else {
+        var lines = [];
+        lines.push(lastFlowData.api.method + ' ' + lastFlowData.api.path);
+        lines.push('');
+        if (lastFlowData.summary) { lines.push('总结: ' + lastFlowData.summary); lines.push(''); }
+        for (var i = 0; i < lastFlowData.nodes.length; i++) {
+            var n = lastFlowData.nodes[i];
+            lines.push('[' + (n.layer || '?') + '] ' + (n.title || ''));
+            if (n.detail) lines.push('   ' + n.detail);
+            if (n.file) lines.push('   📄 ' + n.file);
+        }
+        text = lines.join('\n');
+    }
+    copyText(text, 'copyRespBtn');
+}
+
+// ============================================================
+// 执行记录
+// ============================================================
+function autoFillProductId() {
+    var input = document.getElementById('execProductId');
+    if (!input) return;
+    if (input.value) return;
+    try {
+        var body = JSON.parse(document.getElementById('requestBody').value || '{}');
+        var id = (body.mongodb_repset && body.mongodb_repset.id) ||
+                 (body.mongodb_cluster && body.mongodb_cluster.id) ||
+                 (body.backup_resource && body.backup_resource.cluster_id);
+        if (id) input.value = id;
+    } catch (e) {}
+}
+
+function loadExecFlowList() {
+    var container = document.getElementById('execFlowList');
+    var pid = document.getElementById('execProductId').value.trim();
+
+    container.innerHTML = '<div style="color:#a78bfa;text-align:center;padding:20px;">⏳ 查询中...</div>';
+
+    fetch('/wjr-test/api/list-flows', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ product_id: pid, limit: 30 })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        var rows = null;
+        if (Array.isArray(result)) rows = result;
+        else if (result && result.success && Array.isArray(result.data)) rows = result.data;
+        else if (result && result.data && Array.isArray(result.data.data)) rows = result.data.data;
+
+        if (!rows) {
+            container.innerHTML = '<span style="color:#f87171">❌ ' + escapeHTML((result && result.error) || '查询失败') + '</span>';
+            return;
+        }
+        if (rows.length === 0) {
+            container.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">未找到记录</div>';
+            return;
+        }
+        renderExecFlowList(rows);
+    })
+    ['catch'](function(e) {
+        container.innerHTML = '<span style="color:#f87171">❌ 请求失败: ' + escapeHTML(e.message) + '</span>';
+    });
+}
+
+function renderExecFlowList(rows) {
+    var container = document.getElementById('execFlowList');
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<tr style="background:rgba(139,92,246,0.15);color:#c4b5fd;">'
+          + '<th style="padding:6px 8px;text-align:left;">flow name</th>'
+          + '<th style="padding:6px 8px;text-align:left;">状态</th>'
+          + '<th style="padding:6px 8px;text-align:right;">耗时</th>'
+          + '<th style="padding:6px 8px;text-align:left;">created</th>'
+          + '<th style="padding:6px 8px;"></th>'
+          + '</tr>';
+
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var statusColor = r.status === 'SUCCESS' || r.status === 'FINISHED' ? '#34d399'
+                       : r.status === 'FAILED' ? '#f87171'
+                       : r.status === 'RUNNING' ? '#fbbf24'
+                       : '#94a3b8';
+        var duration = (r.duration_sec !== null && r.duration_sec !== undefined)
+                     ? (r.duration_sec + 's') : '-';
+        html += '<tr style="border-bottom:1px solid rgba(75,85,99,0.15);">'
+              + '<td style="padding:6px 8px;font-family:monospace;color:#e2e8f0;">' + escapeHTML(r.name) + '</td>'
+              + '<td style="padding:6px 8px;"><span style="color:' + statusColor + ';font-weight:600;">' + escapeHTML(r.status) + '</span></td>'
+              + '<td style="padding:6px 8px;text-align:right;color:#94a3b8;">' + duration + '</td>'
+              + '<td style="padding:6px 8px;color:#94a3b8;font-family:monospace;">' + escapeHTML(r.created) + '</td>'
+              + '<td style="padding:6px 8px;"><button onclick="loadFlowDetail(\'' + r.id + '\')" '
+              + 'style="padding:3px 10px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:10.5px;">详情</button></td>'
+              + '</tr>';
+    }
+    html += '</table>';
+    container.innerHTML = html;
+    container.setAttribute('data-loaded', '1');
+}
+
+function loadFlowDetail(flowId) {
+    var container = document.getElementById('execFlowList');
+    container.innerHTML = '<div style="color:#a78bfa;text-align:center;padding:20px;">⏳ 加载详情...</div>';
+
+    fetch('/wjr-test/api/flow-detail', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ flow_id: flowId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        var payload = null;
+        if (result && result.success && result.data) payload = result.data;
+        else if (result && result.flow && result.tasks) payload = result;
+        else if (result && result.data && result.data.flow) payload = result.data;
+
+        if (!payload) {
+            container.innerHTML = '<span style="color:#f87171">❌ ' + escapeHTML((result && result.error) || '加载失败') + '</span>';
+            return;
+        }
+        renderFlowDetail(payload);
+    })
+    ['catch'](function(e) {
+        container.innerHTML = '<span style="color:#f87171">❌ ' + escapeHTML(e.message) + '</span>';
+    });
+}
+
+function renderFlowDetail(data) {
+    var container = document.getElementById('execFlowList');
+    var flow = data.flow;
+    var tasks = data.tasks || [];
+
+    var html = '<div style="margin-bottom:8px;">';
+    html += '<button onclick="loadExecFlowList()" style="padding:3px 10px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:6px;cursor:pointer;font-size:10.5px;margin-bottom:8px;">← 返回列表</button>';
+    html += '<button onclick="retryFlow(\'' + flow.id + '\')" style="padding:3px 10px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:6px;cursor:pointer;font-size:10.5px;margin-bottom:8px;margin-left:6px;">🔁 重试此Flow</button>';
+    html += '<div style="background:rgba(139,92,246,0.1);padding:8px 12px;border-radius:6px;border-left:3px solid #8b5cf6;font-size:11px;color:#c4b5fd;margin-bottom:8px;">';
+    html += '<b>' + escapeHTML(flow.name) + '</b> · ';
+    html += '<span style="font-family:monospace;font-size:10px;color:#64748b;">' + escapeHTML(flow.id || '') + '</span> · ';
+    var fColor = (flow.status === 'SUCCESS' || flow.status === 'FINISHED') ? '#34d399'
+               : flow.status === 'FAILED' ? '#f87171' : '#fbbf24';
+    html += '状态: <span style="color:' + fColor + ';font-weight:600;">' + escapeHTML(flow.status) + '</span> · ';
+    html += '耗时: ' + (flow.duration_sec || 0) + 's · ';
+    html += '<span style="font-family:monospace;font-size:10px;">' + escapeHTML(flow.created) + '</span>';
+    if (flow.result && flow.result !== 'null' && flow.result !== 'NULL') {
+        html += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(139,92,246,0.2);color:#f87171;font-size:10px;word-break:break-all;">';
+        html += '❗ ' + escapeHTML(flow.result.substring(0, 500));
+        html += '</div>';
+    }
+    html += '</div></div>';
+
+    if (tasks.length === 0) {
+        html += '<div style="color:#64748b;text-align:center;padding:20px;">该 flow 下没有 task 记录</div>';
+        container.innerHTML = html;
+        return;
+    }
+
+    for (var i = 0; i < tasks.length; i++) {
+        var t = tasks[i];
+        var tColor = (t.status === 'SUCCESS' || t.status === 'FINISHED') ? '#34d399'
+                   : t.status === 'FAILED' ? '#f87171' : '#fbbf24';
+        html += '<div style="margin-bottom:6px;padding:8px 12px;background:rgba(17,24,39,0.6);border-radius:6px;border-left:3px solid ' + tColor + ';">';
+        html += '<div style="font-size:11px;font-weight:600;color:#e2e8f0;">';
+        html += '<span style="color:' + tColor + ';">●</span> ' + escapeHTML(t.name || '(未命名任务)');
+        html += ' <span style="color:' + tColor + ';font-size:10px;">' + escapeHTML(t.status || '') + '</span>';
+        html += ' <span style="color:#64748b;font-size:10px;margin-left:6px;">' + (t.duration_sec || 0) + 's</span>';
+        html += '</div>';
+
+        var sts = t.sub_tasks || [];
+        if (sts.length > 0) {
+            html += '<div style="margin-top:6px;padding-left:14px;border-left:1px dashed rgba(139,92,246,0.3);">';
+            for (var j = 0; j < sts.length; j++) {
+                var st = sts[j];
+                var stColor = (st.status === 'SUCCESS' || st.status === 'FINISHED') ? '#34d399'
+                            : st.status === 'FAILED' ? '#f87171' : '#fbbf24';
+                var stName = (st.name && st.name !== 'NULL' && st.name !== 'null') ? st.name : ('subtask #' + st.number);
+                html += '<div style="font-size:10px;color:#94a3b8;margin:3px 0;display:flex;gap:6px;align-items:baseline;">';
+                html += '<span style="color:' + stColor + ';">·</span>';
+                html += '<span style="color:#64748b;font-family:monospace;">#' + st.number + '</span>';
+                html += '<span style="color:#cbd5e1;flex:1;">' + escapeHTML(stName) + '</span>';
+                html += '<span style="color:' + stColor + ';">' + escapeHTML(st.status || '') + '</span>';
+                html += '<span style="color:#64748b;">' + (st.duration_sec || 0) + 's</span>';
+                html += '</div>';
+                if (st.result && st.result !== 'null' && st.result !== 'NULL' && st.status !== 'SUCCESS' && st.status !== 'FINISHED') {
+                    html += '<div style="font-size:10px;color:#f87171;margin-left:18px;word-break:break-all;">' + escapeHTML(String(st.result).substring(0, 200)) + '</div>';
+                }
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 资源列表
+// ============================================================
+function loadResources() {
+    var container = document.getElementById('resourceList');
+    container.innerHTML = '<div style="color:#a78bfa;text-align:center;padding:20px;">⏳ 加载中...</div>';
+
+    fetch('/wjr-test/api/list-resources', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ limit: 100 })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        var rows = null;
+        if (Array.isArray(result)) rows = result;
+        else if (result && result.success && Array.isArray(result.data)) rows = result.data;
+        else if (result && result.data && Array.isArray(result.data.data)) rows = result.data.data;
+
+        if (!rows) {
+            container.innerHTML = '<span style="color:#f87171">❌ ' + escapeHTML((result && result.error) || '查询失败') + '</span>';
+            return;
+        }
+        renderResourceList(rows);
+        container.setAttribute('data-loaded', '1');
+    })
+    ['catch'](function(e) {
+        container.innerHTML = '<span style="color:#f87171">❌ 请求失败: ' + escapeHTML(e.message) + '</span>';
+    });
+}
+
+function renderResourceList(rows) {
+    var container = document.getElementById('resourceList');
+    if (rows.length === 0) {
+        container.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">无资源记录</div>';
+        return;
+    }
+
+    // ktrove trove/common/statuses.py 的 InstanceTaskStatus/ProductStatus 完整映射
+    var STATUS_MAP = {
+        // 常规状态
+        '1': 'NONE',
+        '2': 'DELETING',
+        '3': 'REBOOTING',
+        '4': 'RESIZING',
+        '5': 'BUILDING',
+        '6': 'MIGRATING',
+        '7': 'RESTART_REQUIRED',
+        '17': 'TLS_CONFIGURING',
+        '18': 'TDE_CONFIGURING',
+        // 创建失败类
+        '80': 'BUILDING_ERROR_DNS',
+        '81': 'BUILDING_ERROR_SERVER',
+        '82': 'BUILDING_ERROR_VOLUME',
+        '83': 'BUILDING_ERROR_SEC_GROUP',
+        '84': 'BUILDING_ERROR_TIMEOUT_GA',
+        '85': 'TASK_ERROR',
+        '86': 'BUILDING_ERROR_NODE',
+        '87': 'BUILDING_ERROR_CONFIG',
+        // 子任务进行中
+        '160': 'GUEST_PREPARE',
+        '161': 'ALLOCATE_VIP',
+        '162': 'BUILDING_SERVER',
+        '163': 'CONFIG_MYSQL',
+        '164': 'SETIOTUNE',
+        '165': 'BACKUPING',
+        '166': 'DELETEING_SECURITY_GROUP',
+        '167': 'RELEASE_VIP',
+        '168': 'FAILOVER',
+        '169': 'OVERRIDING',
+        '170': 'UPGRADING',
+        '171': 'SWITCHING_ROLE',
+        '176': 'ADD_INSTANCE',
+        '177': 'REMOVE_INSTANCE',
+        '178': 'ROLE_SWAP',
+        '180': 'UNLOCKING',
+        '181': 'SOFT_DELETED',
+        '182': 'CONFIGING',
+        '183': 'ENABLE_RW',
+        '184': 'DISABLE_RW',
+        '185': 'ADDING_USER',
+        '186': 'VPC_CONFIGING',
+        '187': 'EXCHANGE',
+        '188': 'FLUSHDBING',
+        '189': 'FIXING',
+        '202': 'CHANGING_PASSWORD',
+        '203': 'NETWORK_CONFIGURING',
+        '205': 'PARAMETER_CONFIGURING',
+        '206': 'RESTARTING',
+        '207': 'ADD_SHARD',
+        // 失败类
+        '193': 'MIGRATE_FAILED',
+        '194': 'BUILDING_TIMEOUT_ERROR',
+        '204': 'SWITCH_ROLE_ERROR',
+        '208': 'ADD_SHARD_FAILED',
+        '209': 'LOCKED',
+        '210': 'SWITCHING',
+        '211': 'FAKE_DELETED',
+        '212': 'RECOVERING',
+        '213': 'UPGRADING_VERSION',
+        '214': 'BUILDING_RR',
+        '215': 'REPAIRING_SLAVE',
+        '216': 'LOCKED_DISK',
+        '217': 'UPGRADING_PRODUCT_TYPE',
+        '218': 'LOCKING',
+        '219': 'UPDATE_PROXY_GROUP',
+        '220': 'RESTORE_COLLECTION',
+        '221': 'CONFIGURING_SSL',
+        '224': 'ADD_INSTANCE_FAILED',
+        '225': 'REMOVE_INSTANCE_FAILED',
+        '226': 'ROLE_SWAP_ERROR',
+        '227': 'RESIZING_ERROR',
+        '228': 'UNLOCK_FAILED',
+        '229': 'CONFIG_ERROR',
+        '230': 'RECOVER_ERROR',
+        '231': 'ENABLE_RW_FAILED',
+        '232': 'DISABLE_RW_FAILED',
+        '233': 'REBOOT_ERROR',
+        '234': 'VIP_PORT_CONFIG_ERROR',
+        '235': 'VPC_CONFIG_ERROR',
+        '236': 'VIP_CONFIG_ERROR',
+        '237': 'UPGRADE_ERROR'
+    };
+
+    // 英文状态码 → 中文展示
+    var DISPLAY_MAP = {
+        'NONE': '运行中',
+        'BUILDING': '创建中',
+        'DELETING': '删除中',
+        'REBOOTING': '重启中',
+        'RESIZING': '变更中',
+        'MIGRATING': '迁移中',
+        'RESTART_REQUIRED': '待重启',
+        'TLS_CONFIGURING': 'TLS配置中',
+        'TDE_CONFIGURING': 'TDE配置中',
+        'ADD_INSTANCE': '扩容中',
+        'REMOVE_INSTANCE': '缩容中',
+        'BACKUPING': '备份中',
+        'RECOVERING': '恢复中',
+        'UPGRADING': '升级中',
+        'CONFIGING': '配置中',
+        'LOCKED': '已锁定',
+        'LOCKED_DISK': '磁盘锁定',
+        'SOFT_DELETED': '软删除',
+        'FAKE_DELETED': '假删除',
+        'RECOVER_ERROR': '恢复失败',
+        'TASK_ERROR': '任务失败',
+        'BUILDING_ERROR_SERVER': '创建失败-虚机',
+        'BUILDING_ERROR_DNS': '创建失败-DNS',
+        'BUILDING_ERROR_VOLUME': '创建失败-磁盘',
+        'BUILDING_ERROR_SEC_GROUP': '创建失败-安全组',
+        'BUILDING_ERROR_TIMEOUT_GA': '创建失败-GA超时',
+        'BUILDING_ERROR_NODE': '创建失败-节点',
+        'BUILDING_ERROR_CONFIG': '创建失败-配置',
+        'BUILDING_TIMEOUT_ERROR': '创建超时',
+        'ADD_INSTANCE_FAILED': '扩容失败',
+        'REMOVE_INSTANCE_FAILED': '缩容失败',
+        'RESIZING_ERROR': '变更失败',
+        'ROLE_SWAP_ERROR': '切主失败',
+        'UPGRADE_ERROR': '升级失败',
+        'REBOOT_ERROR': '重启失败',
+        'SWITCH_ROLE_ERROR': '切主失败',
+        'ADD_SHARD_FAILED': '加片失败',
+        'CONFIG_ERROR': '配置失败',
+        'ENABLE_RW_FAILED': '启用读写失败',
+        'DISABLE_RW_FAILED': '禁用读写失败',
+        'UNLOCK_FAILED': '解锁失败',
+        'VIP_PORT_CONFIG_ERROR': 'VIP端口配置失败',
+        'VPC_CONFIG_ERROR': 'VPC配置失败',
+        'VIP_CONFIG_ERROR': 'VIP配置失败',
+        'MIGRATE_FAILED': '迁移失败'
+    };
+
+    function mapStatus(s) {
+        if (s === null || s === undefined) return 'UNKNOWN';
+        return STATUS_MAP[String(s)] || ('status=' + s);
+    }
+    function displayStatus(s) {
+        var en = mapStatus(s);
+        return DISPLAY_MAP[en] || en;
+    }
+
+    // 按 kind 分组
+    var repsets = [], clusters = [], others = [];
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var k = r.kind || 'other';
+        if (k === 'repset') repsets.push(r);
+        else if (k === 'cluster') clusters.push(r);
+        else others.push(r);
+    }
+
+    var html = '';
+    html += '<div style="padding:6px 10px;font-size:10px;color:#94a3b8;background:rgba(139,92,246,0.08);border-radius:6px;margin-bottom:6px;">';
+    html += '📦 共 ' + rows.length + ' 条 · 副本集 ' + repsets.length + ' · 集群 ' + clusters.length;
+    if (others.length) html += ' · 其它 ' + others.length;
+    html += '</div>';
+
+    if (repsets.length > 0) {
+        html += '<div class="api-group-header"><span class="api-group-title">副本集 (' + repsets.length + ')</span></div>';
+        for (var j = 0; j < repsets.length; j++) {
+            html += renderResourceItem(repsets[j], 'repset', mapStatus(repsets[j].status), displayStatus(repsets[j].status));
+        }
+    }
+    if (clusters.length > 0) {
+        html += '<div class="api-group-header"><span class="api-group-title">分片集群 (' + clusters.length + ')</span></div>';
+        for (var k2 = 0; k2 < clusters.length; k2++) {
+            html += renderResourceItem(clusters[k2], 'cluster', mapStatus(clusters[k2].status), displayStatus(clusters[k2].status));
+        }
+    }
+    if (others.length > 0) {
+        html += '<div class="api-group-header"><span class="api-group-title">其它 (' + others.length + ')</span></div>';
+        for (var m = 0; m < others.length; m++) {
+            html += renderResourceItem(others[m], 'other', mapStatus(others[m].status), displayStatus(others[m].status));
+        }
+    }
+
+    container.innerHTML = html;
+}
+
+function renderResourceItem(r, kind, statusEn, statusCn) {
+    var name = r.name || '(未命名)';
+    var created = r.created || '';
+    var id = r.id || '';
+    var version = r.version || '';
+
+    var typeCls = kind === 'repset' ? 'res-type-repset'
+                : kind === 'cluster' ? 'res-type-cluster'
+                : 'res-type-other';
+    var typeTxt = kind === 'repset' ? '副本集'
+                : kind === 'cluster' ? '集群'
+                : '其它';
+
+    var statusCls = 'res-status-' + String(statusEn).toUpperCase().replace(/[^A-Z]/g, '');
+
+    var html = '<div class="res-item" onclick="onResourceClick(\'' + escapeHTML(id).replace(/'/g, "\\'") + '\', \'' + escapeHTML(name).replace(/'/g, "\\'") + '\', \'' + kind + '\')">';
+    html += '<div class="res-line1">';
+    html += '<span class="res-type ' + typeCls + '">' + escapeHTML(typeTxt) + '</span>';
+    html += '<span class="res-name" title="' + escapeHTML(name) + '">' + escapeHTML(name) + '</span>';
+    html += '<span class="res-status ' + statusCls + '">' + escapeHTML(statusCn) + '</span>';
+    html += '</div>';
+    if (version) {
+        html += '<div style="font-size:9.5px;color:#94a3b8;">' + escapeHTML(version) + '</div>';
+    }
+    html += '<div class="res-id" title="' + escapeHTML(id) + '">' + escapeHTML(id) + '</div>';
+    if (created) {
+        html += '<div class="res-time">🕒 ' + escapeHTML(created) + '</div>';
+    }
+    html += '</div>';
+    return html;
+}
+
+function onResourceClick(id, name, kind) {
+    var execInput = document.getElementById('execProductId');
+    if (execInput) execInput.value = id;
+
+    var label = kind === 'repset' ? '副本集' : (kind === 'cluster' ? '集群' : '资源');
+    showToast('已选中' + label + ': ' + name);
+
+    switchRespTab('exec');
+    if (execInput) execInput.value = id;
+    loadExecFlowList();
+}
+
+function showToast(msg) {
+    var t = document.getElementById('_toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = '_toast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:8px 16px;background:rgba(139,92,246,0.95);color:#fff;border-radius:8px;font-size:12px;z-index:99999;pointer-events:none;transition:opacity 0.3s;';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.style.opacity = '0'; }, 2000);
+}
+
+// ============================================================
+// 初始化
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    loadFixedApis = function(){};
     buildCurl();
 
     var apiPath = document.getElementById('apiPath');
     apiPath.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') sendRequest();
     });
-    // 输入变化时实时刷新 curl 预览
-    ['apiPath','method','tenantId','requestHeaders','requestBody','requestParams'].forEach(function(id) {
+    ['apiPath','method','tenantId','requestHeaders','requestBody'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', buildCurl);
         if (el && el.tagName === 'SELECT') el.addEventListener('change', buildCurl);
     });
 
-    // ============ SQL 自动补全初始化（新增） ============
     _sqlSuggestBox = document.getElementById('sqlSuggest');
     var sqlTa = document.getElementById('sqlInput');
     if (sqlTa && _sqlSuggestBox) {
-        // 拉一次元数据
         loadSQLMeta();
-        // 输入 → 弹候选
         sqlTa.addEventListener('input', onSQLInput);
-        // 键盘导航
-        sqlTa.addEventListener('keydown', onSQLKeydown);
-        // 失焦后稍延迟隐藏（留给 mousedown 处理）
-        sqlTa.addEventListener('blur', function() {
-            setTimeout(hideSQLSuggest, 150);
-        });
-        // 点击候选框外部也隐藏
+        sqlTa.addEventListener('keydown', onSQLKeyDownCompat);
+        sqlTa.addEventListener('blur', function() { setTimeout(hideSQLSuggest, 150); });
         document.addEventListener('mousedown', function(e) {
-            if (_sqlSuggestBox && !_sqlSuggestBox.contains(e.target) && e.target !== sqlTa) {
-                hideSQLSuggest();
-            }
+            if (_sqlSuggestBox && !_sqlSuggestBox.contains(e.target) && e.target !== sqlTa) hideSQLSuggest();
         });
     }
-    // ==================================================
 });
+
+function onSQLKeyDownCompat(e) {
+    var box = _sqlSuggestBox;
+    if (box && box.style.display !== 'none') {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape') {
+            onSQLKeydown(e);
+            return;
+        }
+    }
+    if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        executeSQL();
+    }
+}
 </script>
 </body>
 </html>

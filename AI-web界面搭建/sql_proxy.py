@@ -6,6 +6,8 @@ SQL 查询代理服务 - 用 mysql 命令行实现，无需 MySQLdb
 修复记录：
   - 旧版用 DESCRIBE 猜列名，导致列名与 SELECT 的列完全错位
   - 新版直接用 mysql -B 输出的第一行（真实列名），可靠且通用
+  - Python 2 下 wfile.write(unicode) 会按 ascii 编码，中文报
+    "'ascii' codec can't encode characters" —— 写之前先 encode('utf-8')
 """
 import json
 import os
@@ -19,7 +21,7 @@ from datetime import datetime, date
 DB_PASSWORD = os.environ.get('TROVE_DB_PASSWORD', '<DB_PASSWORD>')
 
 MYSQL_CMD = [
-    'mysql', '-h127.0.0.1', '-P3307', '-uroot', '-p' + DB_PASSWORD,
+    'mysql', '-h127.0.0.1', '-P3307', '-uroot', '-p' + DB_PASSWORD, '--default-character-set=utf8',
     'wjr_trove', '-B', '--raw'
     # 注意：去掉了 -N（--skip-column-names），保留第一行列名
 ]
@@ -115,14 +117,18 @@ class SQLHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json; charset=utf-8')
         self.end_headers()
-        self.wfile.write(self._dumps(data))
+        _body = self._dumps(data)
+        # Python 2 修复：unicode 直接写 wfile 会按 ascii 编码，中文报错
+        if isinstance(_body, unicode):
+            _body = _body.encode('utf-8')
+        self.wfile.write(_body)
 
     def _dumps(self, obj):
-        def default(o):
+        def _default(o):
             if isinstance(o, (datetime, date)):
                 return o.isoformat()
             raise TypeError
-        return json.dumps(obj, default=default, ensure_ascii=False)
+        return json.dumps(obj, default=_default, ensure_ascii=False)
 
 
 if __name__ == '__main__':

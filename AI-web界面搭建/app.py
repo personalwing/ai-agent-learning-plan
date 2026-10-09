@@ -20,7 +20,10 @@ wjr_handler = WJRTestHandler()
 
 PORT = 8888
 TIMEOUT = 600
-SESSION_FILE = '/root/kscc_session_id.txt'
+
+# ============ 会话存储（多会话） ============
+SESSIONS_FILE = '/root/kscc_sessions.json'
+
 CACHE_SIZE = 50
 
 # 响应缓存
@@ -28,9 +31,178 @@ response_cache = {}
 cache_timestamp = {}
 
 
+# ============ 会话管理 ============
+def load_sessions():
+    """读取会话文件，返回 {'current': sid, 'sessions': [ {id,title,started,created_at,updated_at}, ... ]}
+
+    Python 2 下必须用二进制模式读 + 手动 utf-8 decode，否则遇到中文
+    会触发 ascii 解码错误。
+    """
+    if not os.path.exists(SESSIONS_FILE):
+        return {'current': None, 'sessions': []}
+    try:
+        with open(SESSIONS_FILE, 'rb') as f:
+            raw = f.read()
+        if isinstance(raw, str):
+            raw = raw.decode('utf-8')
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError('bad sessions file')
+        data.setdefault('current', None)
+        data.setdefault('sessions', [])
+        return data
+    except Exception:
+        return {'current': None, 'sessions': []}
+
+
+def save_sessions(data):
+    """保存会话文件。
+
+    Python 2 下 json.dump 直接写文本模式文件会按 ascii 编码 unicode，
+    遇到中文（如默认标题"新会话"）会抛 UnicodeEncodeError。
+    改为：先 dumps 成 unicode，再显式 encode utf-8，用二进制模式写。
+    """
+    tmp = SESSIONS_FILE + '.tmp'
+    s = json.dumps(data, ensure_ascii=False, indent=2)
+    if isinstance(s, unicode):
+        s = s.encode('utf-8')
+    with open(tmp, 'wb') as f:
+        f.write(s)
+    os.rename(tmp, SESSIONS_FILE)
+
+
+def get_current_session_id():
+    data = load_sessions()
+    cur = data.get('current')
+    if not cur:
+        return None
+    for s in data.get('sessions', []):
+        if s.get('id') == cur:
+            return cur
+    return None
+
+
+def get_session_title(sid):
+    if not sid:
+        return u''
+    try:
+        for s in load_sessions().get('sessions', []):
+            if s.get('id') == sid:
+                return s.get('title', u'')
+    except Exception:
+        pass
+    return u''
+
+
+def is_session_started(sid):
+    """判断会话是否已经在 kscc 里创建过（发过至少一条消息成功）。
+
+    未创建过的空会话（点"+ 新建"刚生成 UUID），第一次提问必须用
+    `kscc --session-id` 创建；只有创建过之后的提问才用 `--resume`。
+    """
+    if not sid:
+        return False
+    try:
+        for s in load_sessions().get('sessions', []):
+            if s.get('id') == sid:
+                return bool(s.get('started'))
+    except Exception:
+        pass
+    return False
+
+
+def mark_session_started(sid):
+    """把会话标记为已在 kscc 创建过"""
+    if not sid:
+        return
+    try:
+        data = load_sessions()
+        for s in data.get('sessions', []):
+            if s.get('id') == sid:
+                s['started'] = True
+                s['updated_at'] = time.time()
+                break
+        data['current'] = sid
+        save_sessions(data)
+    except Exception:
+        try:
+            sys.stderr.write('[mark_session_started error]\n' + traceback.format_exc() + '\n')
+            sys.stderr.flush()
+        except Exception:
+            pass
+
+
+def create_new_session(session_id=None, title=u'新会话'):
+    """新建一个会话并设为当前，返回 session_id"""
+    data = load_sessions()
+    sid = session_id or str(uuid.uuid4())
+    now = time.time()
+    data['sessions'].insert(0, {
+        'id': sid,
+        'title': title,
+        'created_at': now,
+        'updated_at': now,
+        'started': False
+    })
+    data['current'] = sid
+    save_sessions(data)
+    return sid
+
+
+def touch_session(sid, first_msg=None):
+    """更新会话 updated_at；若标题仍为默认值，用首条提问前 20 字当标题。
+    整个函数用 try/except 包住 —— 它只是副作用，绝不该让 /chat 挂掉。
+    """
+    if not sid:
+        return
+    try:
+        data = load_sessions()
+        for s in data.get('sessions', []):
+            if s.get('id') == sid:
+                s['updated_at'] = time.time()
+                if first_msg and s.get('title') in (u'新会话', u'', None):
+                    t = first_msg
+                    if isinstance(t, unicode):
+                        pass
+                    elif isinstance(t, str):
+                        t = t.decode('utf-8', 'ignore')
+                    else:
+                        t = unicode(t)
+                    t = t.strip().replace(u'\n', u' ').replace(u'\r', u' ')
+                    s['title'] = t[:20] + (u'…' if len(t) > 20 else u'')
+                break
+        data['current'] = sid
+        save_sessions(data)
+    except Exception:
+        try:
+            sys.stderr.write('[touch_session error]\n' + traceback.format_exc() + '\n')
+            sys.stderr.flush()
+        except Exception:
+            pass
+
+
+def switch_session(sid):
+    data = load_sessions()
+    for s in data.get('sessions', []):
+        if s.get('id') == sid:
+            data['current'] = sid
+            save_sessions(data)
+            return True
+    return False
+
+
+def delete_session(sid):
+    data = load_sessions()
+    data['sessions'] = [s for s in data.get('sessions', []) if s.get('id') != sid]
+    if data.get('current') == sid:
+        data['current'] = data['sessions'][0]['id'] if data['sessions'] else None
+    save_sessions(data)
+    return True
+
+
+# ============ 缓存 ============
 def get_cache_key(msg):
     """生成缓存key"""
-    # Python 2 下 msg 可能是 unicode，先统一成 utf-8 bytes
     if isinstance(msg, unicode):
         msg = msg.encode('utf-8')
     return hashlib.md5(msg).hexdigest()
@@ -39,26 +211,16 @@ def get_cache_key(msg):
 def is_cacheable(msg):
     """
     判断这个问题是否允许走缓存。
-
-    原则：
-      - 以 '/' 开头的命令（如 /wjr、/git、/sql）一律不缓存 —— 它们是状态/操作类
-      - 含状态查询、写操作关键词的一律不缓存
-      - 太短的问题不缓存（容易误判）
-    其余纯问答类才允许缓存。
     """
     if not msg:
         return False
-    # Python 2 下 msg 可能是 unicode，先统一成 utf-8 bytes，
-    # 否则 `k in low`（bytes in unicode）会触发 ascii 解码报错
     if isinstance(msg, unicode):
         msg = msg.encode('utf-8')
     msg = msg.strip()
 
-    # 命令类，一律不缓存
     if msg.startswith('/'):
         return False
 
-    # 状态 / 写操作类关键词，一律不缓存
     dangerous_keywords = (
         '提交', '推送', 'commit', 'push', 'pull', 'merge',
         '状态', 'status', 'diff', 'log', 'git',
@@ -73,7 +235,6 @@ def is_cacheable(msg):
         if k in low:
             return False
 
-    # 太短的不缓存
     if len(msg) < 4:
         return False
 
@@ -81,7 +242,6 @@ def is_cacheable(msg):
 
 
 def get_cached_response(msg):
-    """获取缓存响应"""
     key = get_cache_key(msg)
     if key in response_cache:
         if time.time() - cache_timestamp.get(key, 0) < 3600:
@@ -95,7 +255,6 @@ def get_cached_response(msg):
 
 
 def set_cached_response(msg, reply):
-    """设置缓存响应"""
     key = get_cache_key(msg)
     if len(response_cache) >= CACHE_SIZE:
         if cache_timestamp:
@@ -109,7 +268,7 @@ def set_cached_response(msg, reply):
     cache_timestamp[key] = time.time()
 
 
-HTML = '''
+HTML = r'''
 <!DOCTYPE html>
 <html>
 <head>
@@ -145,10 +304,129 @@ HTML = '''
             0%, 100% { transform: scale(1) rotate(0deg); }
             50% { transform: scale(1.1) rotate(3deg); }
         }
+
+        .app-layout {
+            display: flex;
+            width: 1180px;
+            max-width: 98%;
+            height: 90vh;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: rgba(17, 24, 39, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            padding: 18px 14px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            margin-bottom: 12px;
+        }
+        .sidebar-header .title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #a78bfa;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-header .new-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .sidebar-header .new-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 2px;
+        }
+        .session-list::-webkit-scrollbar { width: 4px; }
+        .session-list::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.5); border-radius: 4px; }
+        .session-item {
+            padding: 9px 10px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.55);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 12px;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .session-item:hover {
+            border-color: rgba(124, 58, 237, 0.4);
+            background: rgba(124, 58, 237, 0.12);
+        }
+        .session-item.active {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(109, 40, 217, 0.35));
+            border-color: #7c3aed;
+            color: #fff;
+            box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3) inset;
+        }
+        .session-item .title {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .session-item .meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .session-item .del {
+            opacity: 0;
+            color: #ef4444;
+            font-size: 13px;
+            padding: 0 2px;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
+        }
+        .session-item:hover .del { opacity: 1; }
+        .session-empty {
+            text-align: center;
+            color: #4b5563;
+            font-size: 11px;
+            padding: 20px 0;
+        }
+
         .container { 
-            width: 920px; 
-            max-width: 96%; 
-            height: 90vh; 
+            flex: 1;
+            min-width: 0;
+            height: 100%;
             background: rgba(17, 24, 39, 0.92);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -160,7 +438,6 @@ HTML = '''
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 1;
         }
         .header {
             display: flex;
@@ -204,6 +481,10 @@ HTML = '''
             border-radius: 20px;
             border: 1px solid rgba(124, 58, 237, 0.15);
             font-family: 'Courier New', monospace;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .status-indicator {
             display: flex;
@@ -259,6 +540,8 @@ HTML = '''
             margin-left: auto;
             border-bottom-right-radius: 4px;
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         .msg.ai { 
             background: rgba(30, 41, 59, 0.8);
@@ -470,49 +753,66 @@ HTML = '''
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+        @media (max-width: 900px) {
+            .app-layout { flex-direction: column; height: auto; max-height: 95vh; }
+            .sidebar { width: 100%; max-height: 30vh; }
+            .container { height: 65vh; padding: 16px; }
+        }
         @media (max-width: 768px) {
-            .container { padding: 16px; height: 95vh; }
             .header h1 { font-size: 18px; }
             .input-area { flex-wrap: wrap; }
             .input-area input { min-width: 100%; }
             .input-area button { flex: 1; padding: 12px; }
             .msg { max-width: 100%; }
+            .session-info { max-width: 120px; }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <div class="header-left">
-            <span class="header-icon">🧠</span>
-            <h1>Wangjingru 的 Kscc</h1>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <span class="title">💬 历史会话</span>
+            <button class="new-btn" onclick="newSession()">+ 新建</button>
         </div>
-        <div class="header-right">
-            <span class="session-info" id="sessionInfo">会话: 未开始</span>
-            <div class="status-indicator">
-                <span class="status-dot ready" id="statusDot"></span>
-                <span id="statusText">就绪</span>
+        <div class="session-list" id="sessionList">
+            <div class="session-empty">暂无会话</div>
+        </div>
+    </aside>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <span class="header-icon">🧠</span>
+                <h1>Wangjingru 的 Kscc</h1>
+            </div>
+            <div class="header-right">
+                <span class="session-info" id="sessionInfo">会话: 未开始</span>
+                <div class="status-indicator">
+                    <span class="status-dot ready" id="statusDot"></span>
+                    <span id="statusText">就绪</span>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div id="chat">
-        <div class="msg ai markdown-body">👋 你好！支持**多轮对话**和**响应缓存**。<br>⏱ 响应约 5-6 秒<br>💡 悬停消息可复制内容<br>🔒 命令类 / 状态查询 / 写操作不走缓存，始终实时</div>
-    </div>
-    
-    <div class="input-area">
-        <input id="msg" placeholder="输入问题..." onkeydown="if(event.key==='Enter') send()">
-        <button onclick="send()">发送</button>
-        <button onclick="clearSession()" class="clear-btn">重置</button>
-    </div>
-    
-    <div class="footer">
-        <div class="footer-info">
-            <span>⚡ 缓存: <span id="cacheStatus">0</span></span>
-            <span class="badge">v2.1</span>
+        
+        <div id="chat">
+            <div class="msg ai markdown-body">👋 你好！支持**多轮对话**和**响应缓存**。<br>⏱ 响应约 5-6 秒<br>💡 左侧可切换历史会话<br>🔒 命令类 / 状态查询 / 写操作不走缓存，始终实时</div>
         </div>
-        <div class="footer-info">
-            <span>⏱ <span id="responseTime">-</span></span>
+        
+        <div class="input-area">
+            <input id="msg" placeholder="输入问题..." onkeydown="if(event.key==='Enter') send()">
+            <button onclick="send()">发送</button>
+            <button onclick="clearSession()" class="clear-btn">重置</button>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-info">
+                <span>⚡ 缓存: <span id="cacheStatus">0</span></span>
+                <span class="badge">v2.2</span>
+            </div>
+            <div class="footer-info">
+                <span>⏱ <span id="responseTime">-</span></span>
+            </div>
         </div>
     </div>
 </div>
@@ -522,6 +822,7 @@ HTML = '''
 <script>
 var messageCount = 0;
 var startTime = null;
+var currentSessionId = null;
 
 function showToast(message, duration) {
     if (duration === undefined) duration = 2000;
@@ -641,8 +942,6 @@ function addMsgWithTyping(text, cls) {
                 setTimeout(typeWriter, delay);
             } else {
                 copyBtn.style.opacity = '1';
-                var btn = d.querySelector('.copy-btn');
-                if (btn) btn.style.opacity = '1';
             }
         }
         typeWriter();
@@ -669,11 +968,19 @@ function removeLoading() {
     if (el) el.remove();
 }
 
-function updateSessionInfo(sessionId) {
-    if (sessionId) {
-        document.getElementById('sessionInfo').textContent = '会话: ' + sessionId.substring(0, 8) + '...';
+function updateSessionInfo(sessionId, title) {
+    var el = document.getElementById('sessionInfo');
+    if (!sessionId) {
+        el.textContent = '会话: 未开始';
+        el.title = '';
+        return;
+    }
+    if (title) {
+        el.textContent = title;
+        el.title = title + ' (' + sessionId + ')';
     } else {
-        document.getElementById('sessionInfo').textContent = '会话: 未开始';
+        el.textContent = '会话: ' + sessionId.substring(0, 8) + '...';
+        el.title = sessionId;
     }
 }
 
@@ -701,15 +1008,147 @@ function updateResponseTime(time) {
     document.getElementById('responseTime').textContent = time + 's';
 }
 
+function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+
+function formatTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts * 1000);
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    if (d.toDateString() === now.toDateString()) {
+        return pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    return (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+function loadSessions() {
+    fetch('/sessions')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        var list = document.getElementById('sessionList');
+        var sessions = d.sessions || [];
+        var cur = d.current;
+        currentSessionId = cur;
+        if (!sessions.length) {
+            list.innerHTML = '<div class="session-empty">暂无会话</div>';
+            updateSessionInfo(null);
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < sessions.length; i++) {
+            var s = sessions[i];
+            var cls = 'session-item' + (s.id === cur ? ' active' : '');
+            html += '<div class="' + cls + '" data-sid="' + escapeHtml(s.id) + '">'
+                  +   '<div style="flex:1;min-width:0">'
+                  +     '<div class="title" title="' + escapeHtml(s.title || '新会话') + '">'
+                  +       escapeHtml(s.title || '新会话')
+                  +     '</div>'
+                  +     '<div class="meta">' + formatTime(s.updated_at || s.created_at) + '</div>'
+                  +   '</div>'
+                  +   '<span class="del" title="删除">✕</span>'
+                  + '</div>';
+        }
+        list.innerHTML = html;
+
+        var items = list.querySelectorAll('.session-item');
+        for (var k = 0; k < items.length; k++) {
+            (function(el) {
+                var sid = el.getAttribute('data-sid');
+                el.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('del')) {
+                        e.stopPropagation();
+                        if (confirm('删除这个会话？')) deleteSession(sid);
+                        return;
+                    }
+                    switchSession(sid);
+                });
+            })(items[k]);
+        }
+
+        if (cur) {
+            var curTitle = '';
+            for (var m = 0; m < sessions.length; m++) {
+                if (sessions[m].id === cur) { curTitle = sessions[m].title || ''; break; }
+            }
+            updateSessionInfo(cur, curTitle);
+        } else {
+            updateSessionInfo(null);
+        }
+    })
+    ['catch'](function() {
+        document.getElementById('sessionList').innerHTML = '<div class="session-empty">加载失败</div>';
+    });
+}
+
+function newSession() {
+    fetch('/sessions/new', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'ok') {
+            currentSessionId = d.session_id;
+            document.getElementById('chat').innerHTML =
+                '<div class="msg ai markdown-body">🆕 新会话已创建，开始提问吧！</div>';
+            updateSessionInfo(d.session_id, '新会话');
+            updateStatus('ready', '新会话');
+            loadSessions();
+            document.getElementById('msg').focus();
+        }
+    });
+}
+
+function switchSession(sid) {
+    if (sid === currentSessionId) return;
+    fetch('/sessions/switch', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({session_id: sid})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'ok') {
+            currentSessionId = sid;
+            document.getElementById('chat').innerHTML =
+                '<div class="msg ai markdown-body">🔄 已切换会话 <code>' +
+                escapeHtml(sid.substring(0,8)) + '...</code><br>继续提问将接续该会话上下文。</div>';
+            updateSessionInfo(sid);
+            updateStatus('ready', '已切换');
+            loadSessions();
+            document.getElementById('msg').focus();
+        }
+    });
+}
+
+function deleteSession(sid) {
+    fetch('/sessions/delete', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({session_id: sid})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+        if (sid === currentSessionId) {
+            document.getElementById('chat').innerHTML =
+                '<div class="msg ai markdown-body">🗑 当前会话已删除</div>';
+            updateSessionInfo(null);
+        }
+        loadSessions();
+    });
+}
+
 function clearSession() {
-    if (confirm('确定要重置会话吗？')) {
+    if (confirm('重置会清空所有会话历史，确定吗？')) {
         fetch('/clear', { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if (d.status === 'ok') {
-                document.getElementById('chat').innerHTML = '<div class="msg ai markdown-body">✅ 会话已重置！</div>';
+                document.getElementById('chat').innerHTML = '<div class="msg ai markdown-body">✅ 所有会话已清空！</div>';
                 updateSessionInfo(null);
                 updateStatus('ready', '已重置');
+                loadSessions();
             }
         });
     }
@@ -736,13 +1175,22 @@ function send() {
         body: JSON.stringify({message: userMsg}),
         signal: controller.signal
     })
-    .then(function(r) { clearTimeout(timeoutId); return r.json(); })
-    .then(function(d) {
+    .then(function(r) { clearTimeout(timeoutId); return r.text(); })
+    .then(function(txt) {
+        var d;
+        try { d = JSON.parse(txt); }
+        catch (e) {
+            removeLoading();
+            updateStatus('error', '解析失败');
+            addMsg('❌ 服务端返回不是合法 JSON：\n\n' + (txt ? txt.substring(0, 500) : '(空)'), 'ai');
+            return;
+        }
         removeLoading();
         updateStatus('ready', '已回复');
         
         if (d.session_id) {
-            updateSessionInfo(d.session_id);
+            currentSessionId = d.session_id;
+            updateSessionInfo(d.session_id, d.session_title);
         }
         
         if (d.from_cache) {
@@ -759,6 +1207,7 @@ function send() {
         }
         
         addMsgWithTyping(d.reply || '无响应', 'ai');
+        loadSessions();
     })
     .catch(function(e) {
         removeLoading();
@@ -771,44 +1220,64 @@ function send() {
         }
     });
 }
+
+window.addEventListener('DOMContentLoaded', function() {
+    loadSessions();
+});
 </script>
 </body>
 </html>
 '''
 
 
-def get_session_id():
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, 'r') as f:
-            return f.read().strip()
-    return None
-
-
-def save_session_id(session_id):
-    with open(SESSION_FILE, 'w') as f:
-        f.write(session_id)
-
-
 class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-    # 增加超时处理，防止Broken pipe
     timeout = 300
 
     def log_error(self, format, *args):
-        # 忽略 Broken pipe 错误
         if 'Broken pipe' in format % args:
             return
         SimpleHTTPServer.SimpleHTTPRequestHandler.log_error(self, format, *args)
+
+    def handle_error(self, request, client_address):
+        try:
+            sys.stderr.write('[Handler uncaught]\n' + traceback.format_exc() + '\n')
+            sys.stderr.flush()
+        except Exception:
+            pass
 
     def handle_one_request(self):
         try:
             SimpleHTTPServer.SimpleHTTPRequestHandler.handle_one_request(self)
         except socket.error as e:
-            # 忽略 Broken pipe 错误
-            if e.errno != 32:  # EPIPE
+            if e.errno != 32:
                 raise
         except Exception as e:
             if 'Broken pipe' not in str(e):
                 raise
+
+    def _read_json_body(self):
+        try:
+            length = int(self.headers.getheader('Content-Length', 0))
+            body = self.rfile.read(length)
+            return json.loads(body) if body else {}
+        except Exception:
+            return {}
+
+    def _send_json(self, obj, status=200):
+        try:
+            self.send_response(status)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            body = json.dumps(obj, ensure_ascii=False)
+            if isinstance(body, unicode):
+                body = body.encode('utf-8')
+            self.wfile.write(body)
+        except Exception:
+            try:
+                sys.stderr.write('[send_json error]\n' + traceback.format_exc() + '\n')
+                sys.stderr.flush()
+            except Exception:
+                pass
 
     def do_GET(self):
         # ============ WJR-Test 路由 ============
@@ -862,7 +1331,6 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(result))
             return
 
-        # ============ 新增：SQL 元数据（表/字段）接口，供前端自动补全 ============
         if self.path == '/wjr-test/api/sql-meta':
             try:
                 self.send_response(200)
@@ -871,7 +1339,6 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 result = wjr_handler.handle_sql_meta()
                 self.wfile.write(json.dumps(result, ensure_ascii=False))
             except Exception as e:
-                # 出错也要保证前端拿到合法 JSON，避免补全彻底挂掉
                 try:
                     self.wfile.write(json.dumps({
                         'success': False,
@@ -882,14 +1349,17 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 except Exception:
                     pass
             return
-        # ====================================================================
+
+        # ============ 会话列表接口 ============
+        if self.path == '/sessions':
+            self._send_json(load_sessions())
+            return
 
         if self.path.startswith('/wjr-test'):
             self.send_response(404)
             self.end_headers()
             self.wfile.write('Not Found')
             return
-        # ============ WJR-Test 路由结束 ============
 
         # ============ 原有逻辑 ============
         self.send_response(200)
@@ -900,12 +1370,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         # ============ WJR-Test API 路由 ============
         if self.path.startswith('/wjr-test/api/'):
-            try:
-                length = int(self.headers.getheader('Content-Length', 0))
-                body = self.rfile.read(length)
-                data = json.loads(body) if body else {}
-            except Exception as e:
-                data = {}
+            data = self._read_json_body()
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -913,8 +1378,18 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
             if self.path == '/wjr-test/api/test':
                 result = wjr_handler.handle_test(data)
+            elif self.path == '/wjr-test/api/flow-trace':
+                result = wjr_handler.handle_flow_trace(data)
+            elif self.path == '/wjr-test/api/list-flows':
+                result = wjr_handler.handle_list_flows(data)
+            elif self.path == '/wjr-test/api/flow-detail':
+                result = wjr_handler.handle_flow_detail(data)
+            elif self.path == '/wjr-test/api/list-resources':
+                result = wjr_handler.handle_list_resources(data)
             elif self.path == '/wjr-test/api/run-tests':
                 result = wjr_handler.handle_run_tests(data)
+            elif self.path == '/wjr-test/api/flow-retry':
+                result = wjr_handler.handle_flow_retry(data)
             elif self.path == '/wjr-test/api/execute-sql':
                 result = wjr_handler.handle_execute_sql(data)
             else:
@@ -922,112 +1397,156 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
             try:
                 self.wfile.write(json.dumps(result))
-            except Exception as e:
-                # 忽略 Broken pipe
+            except Exception:
                 pass
             return
         # ============ WJR-Test API 路由结束 ============
 
+        # ============ 会话相关接口 ============
+        if self.path == '/sessions/new':
+            sid = create_new_session()
+            self._send_json({'status': 'ok', 'session_id': sid})
+            return
+
+        if self.path == '/sessions/switch':
+            data = self._read_json_body()
+            sid = data.get('session_id')
+            if sid and switch_session(sid):
+                self._send_json({'status': 'ok', 'session_id': sid})
+            else:
+                self._send_json({'status': 'error', 'error': 'session not found'}, 404)
+            return
+
+        if self.path == '/sessions/delete':
+            data = self._read_json_body()
+            sid = data.get('session_id')
+            if sid:
+                delete_session(sid)
+            self._send_json({'status': 'ok'})
+            return
+        # =====================================
+
         # ============ 原有 /clear 逻辑 ============
         if self.path == '/clear':
-            if os.path.exists(SESSION_FILE):
-                os.remove(SESSION_FILE)
+            if os.path.exists(SESSIONS_FILE):
+                try:
+                    os.remove(SESSIONS_FILE)
+                except Exception:
+                    pass
             response_cache.clear()
             cache_timestamp.clear()
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'status': 'ok'}))
+            self._send_json({'status': 'ok'})
             return
 
         # ============ 原有 /chat 逻辑 ============
         if self.path == '/chat':
-            length = int(self.headers.getheader('Content-Length', 0))
-            body = self.rfile.read(length)
-            data = json.loads(body)
-            msg = data.get('message', '')
-
-            # Python 2 下 json.loads 得到的是 unicode，含中文时
-            # 与 bytes 字面量做 in / replace / % 运算会触发 ascii 解码报错。
-            # 入口处统一转成 utf-8 bytes，后面全程用 bytes 处理。
-            if isinstance(msg, unicode):
-                msg = msg.encode('utf-8')
-
-            cached_reply = None
+            reply = u''
             from_cache = False
+            try:
+                data = self._read_json_body()
+                msg = data.get('message', '')
 
-            # 只有"安全"的问题才允许走缓存：
-            # 命令类（/wjr 等）、状态查询、写操作一律不走，保证实时
-            if is_cacheable(msg):
-                cached_reply = get_cached_response(msg)
+                if isinstance(msg, unicode):
+                    msg = msg.encode('utf-8')
 
-            if cached_reply:
-                from_cache = True
-                reply = cached_reply
-                # 注意：不要在这里 print 含中文的 msg，Python 2 下会触发
-                # UnicodeDecodeError，导致整个请求挂掉、前端 Failed to fetch
-            else:
-                try:
-                    safe_msg = msg.replace("'", "'\\''")
-                    session_id = get_session_id()
+                cached_reply = None
+                if is_cacheable(msg):
+                    cached_reply = get_cached_response(msg)
 
-                    if session_id:
-                        cmd = "docker exec wjrKscc sh -c \"kscc --resume %s -p '%s' < /dev/null\"" % (session_id, safe_msg)
-                    else:
-                        new_session = str(uuid.uuid4())
-                        cmd = "docker exec wjrKscc sh -c \"kscc --session-id %s -p '%s' < /dev/null\"" % (new_session, safe_msg)
-                        save_session_id(new_session)
-
-                    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, close_fds=True)
-
-                    # 用 threading.Timer 替代 signal.alarm（signal 只能在主线程用，
-                    # ThreadingTCPServer 下 /chat 在子线程执行会抛
-                    # "signal only works in main thread"）
-                    timed_out = [False]
-
-                    def _kill_on_timeout():
-                        timed_out[0] = True
-                        try:
-                            proc.kill()
-                        except Exception:
-                            pass
-
-                    timer = threading.Timer(TIMEOUT, _kill_on_timeout)
-                    timer.start()
-
+                if cached_reply:
+                    from_cache = True
+                    reply = cached_reply
+                    sid_now = get_current_session_id()
+                    if sid_now:
+                        touch_session(sid_now, first_msg=msg)
+                else:
                     try:
-                        out, err = proc.communicate()
-                        timer.cancel()
-                        if timed_out[0]:
-                            reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
-                        elif proc.returncode == 0:
-                            reply = out.decode('utf-8').strip()
-                            if not reply:
-                                reply = u"（kscc 没有返回内容）"
-                            # 只有安全的问题、且回复正常时才写入缓存
-                            if is_cacheable(msg) and not reply.startswith(u'错误') and not reply.startswith(u'异常') and not reply.startswith(u'⏰'):
-                                set_cached_response(msg, reply)
+                        safe_msg = msg.replace("'", "'\\''")
+                        session_id = get_current_session_id()
+
+                        pending_sid = None
+                        if session_id and is_session_started(session_id):
+                            sid_b = session_id
+                            if isinstance(sid_b, unicode):
+                                sid_b = sid_b.encode('utf-8')
+                            cmd = "docker exec wjrKscc sh -c \"kscc --resume %s -p '%s' < /dev/null\"" % (sid_b, safe_msg)
+                            touch_session(session_id, first_msg=msg)
+                            pending_sid = session_id
                         else:
-                            reply = u"错误: " + err.decode('utf-8').strip()
-                    except Exception:
-                        timer.cancel()
+                            if session_id:
+                                new_session = session_id
+                            else:
+                                new_session = create_new_session()
+                            sid_b = new_session
+                            if isinstance(sid_b, unicode):
+                                sid_b = sid_b.encode('utf-8')
+                            cmd = "docker exec wjrKscc sh -c \"kscc --session-id %s -p '%s' < /dev/null\"" % (sid_b, safe_msg)
+                            touch_session(new_session, first_msg=msg)
+                            pending_sid = new_session
+
+                        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, close_fds=True)
+
+                        timed_out = [False]
+
+                        def _kill_on_timeout():
+                            timed_out[0] = True
+                            try:
+                                proc.kill()
+                            except Exception:
+                                pass
+
+                        timer = threading.Timer(TIMEOUT, _kill_on_timeout)
+                        timer.start()
+
                         try:
-                            proc.kill()
+                            out, err = proc.communicate()
+                            timer.cancel()
+                            if timed_out[0]:
+                                reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
+                            elif proc.returncode == 0:
+                                reply = out.decode('utf-8', 'replace').strip()
+                                if not reply:
+                                    reply = u"（kscc 没有返回内容）"
+                                if pending_sid:
+                                    mark_session_started(pending_sid)
+                                if is_cacheable(msg) and not reply.startswith(u'错误') and not reply.startswith(u'异常') and not reply.startswith(u'⏰'):
+                                    set_cached_response(msg, reply)
+                            else:
+                                reply = u"错误: " + err.decode('utf-8', 'replace').strip()
+                        except Exception:
+                            timer.cancel()
+                            try:
+                                proc.kill()
+                            except Exception:
+                                pass
+                            reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
+                    except Exception as e:
+                        try:
+                            sys.stderr.write('[chat inner error]\n' + traceback.format_exc() + '\n')
+                            sys.stderr.flush()
                         except Exception:
                             pass
-                        reply = u"⏰ 请求超时（%d秒）" % TIMEOUT
-                except Exception as e:
-                    reply = u"异常: " + unicode(e)
+                        reply = u"异常: " + unicode(e)
+            except Exception as e:
+                reply = u"服务端异常: " + unicode(e)
+                try:
+                    sys.stderr.write('[chat outer error]\n' + traceback.format_exc() + '\n')
+                    sys.stderr.flush()
+                except Exception:
+                    pass
 
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({
+            sid = get_current_session_id()
+            try:
+                title = get_session_title(sid)
+            except Exception:
+                title = u''
+            self._send_json({
                 'reply': reply,
-                'session_id': get_session_id(),
+                'session_id': sid,
+                'session_title': title,
                 'from_cache': from_cache,
                 'cache_count': len(response_cache)
-            }))
+            })
             return
 
         # 其他POST请求返回404
@@ -1037,7 +1556,6 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    # 用 ThreadingTCPServer，避免 /chat 的 docker exec 长耗时阻塞 wjr-test 测试请求
     import socket
     SocketServer.TCPServer.allow_reuse_address = True
 
@@ -1046,7 +1564,8 @@ if __name__ == '__main__':
     print '访问地址: http://<APP_HOST>:' + str(PORT)
     print '超时时间: ' + str(TIMEOUT) + ' 秒'
     print '缓存大小: ' + str(CACHE_SIZE) + ' 条'
-    print '支持: 多轮对话 | 响应缓存 | 打字机效果 | 消息复制'
+    print '会话文件: ' + SESSIONS_FILE
+    print '支持: 多会话侧边栏 | 响应缓存 | 打字机效果 | 消息复制'
     print 'WJR-Test: http://<APP_HOST>:' + str(PORT) + '/wjr-test'
     print '=========================================='
     SocketServer.ThreadingTCPServer(('0.0.0.0', PORT), Handler).serve_forever()
