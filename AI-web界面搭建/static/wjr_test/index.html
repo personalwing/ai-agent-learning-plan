@@ -96,6 +96,32 @@
             background: rgba(124, 58, 237, 0.25);
         }
 
+        /* ============ 底座切换按钮(显眼胶囊) ============ */
+        .be-tab {
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #cbd5e1;
+            cursor: pointer;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.5);
+            transition: all 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .be-tab:hover {
+            color: #fff;
+            border-color: rgba(167, 139, 250, 0.7);
+            background: rgba(124, 58, 237, 0.15);
+        }
+        .be-tab.active {
+            color: #fff;
+            border-color: #a78bfa;
+            background: linear-gradient(135deg, #7c3aed, #9333ea);
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.55);
+        }
+
         /* ============ 按钮 ============ */
         .btn {
             padding: 5px 12px;
@@ -908,7 +934,11 @@
         <div class="fixed-panel">
             <div class="panel-header">
                 <h2>🗄️ MySQL 查询</h2>
-                <span class="count">3307/wjr_trove</span>
+                <div style="display:flex;gap:2px;margin-left:6px;">
+                    <span class="be-tab active sql-tgt" data-st="nova" onclick="switchSQLTarget('nova')" title="nova底座 127.0.0.1:3307">nova</span>
+                    <span class="be-tab sql-tgt" data-st="k8s" onclick="switchSQLTarget('k8s')" title="k8s集群trove底座 MariaDB">k8s底座</span>
+                </div>
+                <span class="count" id="sqlCount">3307/wjr_trove</span>
             </div>
             <div class="sql-panel">
                 <div class="sql-input-wrap">
@@ -941,6 +971,11 @@
             </div>
             <div class="api-list-container" id="scannedApiList">
                 <div class="hint-text">点击 "扫描" 发现 API</div>
+            </div>
+            <div id="resTargetBar" style="display:none;padding:6px 10px;gap:6px;align-items:center;border-bottom:1px solid rgba(139,92,246,0.12);">
+                <span style="font-size:10.5px;color:#94a3b8;">底座:</span>
+                <span class="be-tab active res-tgt" data-rt="nova" onclick="switchResTarget('nova')" title="nova底座 products表">nova</span>
+                <span class="be-tab res-tgt" data-rt="k8s" onclick="switchResTarget('k8s')" title="k8s集群trove底座 products表">k8s底座</span>
             </div>
             <div class="api-list-container" id="resourceList" style="display:none;">
                 <div class="hint-text">点击 "🔄 刷新" 加载资源列表</div>
@@ -1041,6 +1076,9 @@
                             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
                                 <label style="font-size:11px;color:#94a3b8;min-width:60px;">product_id</label>
                                 <input type="text" id="execProductId" class="exec-input" placeholder="从 Body 自动提取或手动填写">
+                                <span style="font-size:10.5px;color:#94a3b8;">底座</span>
+                                <span class="be-tab active flow-tgt" data-ft="nova" onclick="switchFlowTarget('nova')">nova</span>
+                                <span class="be-tab flow-tgt" data-ft="k8s" onclick="switchFlowTarget('k8s')">k8s底座</span>
                                 <button class="exec-btn" onclick="loadExecFlowList()">查询</button>
                             </div>
                             <div style="font-size:10px;color:#64748b;flex-shrink:0;">
@@ -1115,6 +1153,7 @@ function switchMidTab(tab) {
         tabs[i].classList.toggle('active', tabs[i].getAttribute('data-mt') === tab);
     }
     document.getElementById('scannedApiList').style.display = (tab === 'api') ? 'block' : 'none';
+    document.getElementById('resTargetBar').style.display = (tab === 'res') ? 'flex' : 'none';
     document.getElementById('resourceList').style.display = (tab === 'res') ? 'block' : 'none';
 
     document.getElementById('midBtnScan').style.display = (tab === 'api') ? '' : 'none';
@@ -1131,6 +1170,46 @@ function switchMidTab(tab) {
 // ============================================================
 // MySQL 查询
 // ============================================================
+// 底座切换: nova=<SQL_PROXY_HOST> nova底座(127.0.0.1:3307), k8s=k8s集群trove底座
+var SQL_TARGET = 'nova';
+
+function _setTabGroup(cls, attr, val) {
+    var tabs = document.querySelectorAll('.' + cls);
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.toggle('active', tabs[i].getAttribute(attr) === val);
+    }
+}
+
+function switchSQLTarget(t) {
+    if (SQL_TARGET === t) return;
+    SQL_TARGET = t;
+    _setTabGroup('sql-tgt', 'data-st', t);
+    document.getElementById('sqlCount').textContent = (t === 'nova') ? '3307/wjr_trove' : 'k8s/wjr_trove';
+    document.getElementById('sqlResult').innerHTML = '<span style="color:#64748b">结果将显示在这里...</span>';
+    // 补全元数据按底座独立
+    SQL_META = { tables: [], columns: {} };
+    loadSQLMeta();
+}
+
+// 资源列表底座（与 MySQL 查询面板独立）
+var RES_TARGET = 'nova';
+function switchResTarget(t) {
+    if (RES_TARGET === t) return;
+    RES_TARGET = t;
+    _setTabGroup('res-tgt', 'data-rt', t);
+    loadResources();
+}
+
+// flow 执行记录底座（与上面两者独立）
+var FLOW_TARGET = 'nova';
+function switchFlowTarget(t) {
+    if (FLOW_TARGET === t) return;
+    FLOW_TARGET = t;
+    _setTabGroup('flow-tgt', 'data-ft', t);
+    document.getElementById('execFlowList').innerHTML = '';
+    document.getElementById('execFlowList').removeAttribute('data-loaded');
+}
+
 function showTables() {
     document.getElementById('sqlInput').value = 'SHOW TABLES';
     executeSQL();
@@ -1147,7 +1226,7 @@ function executeSQL() {
     fetch('/wjr-test/api/execute-sql', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({sql: sql})
+        body: JSON.stringify({sql: sql, target: SQL_TARGET})
     })
     .then(function(resp) { return resp.json(); })
     .then(function(result) {
@@ -1306,7 +1385,7 @@ var SQL_KEYWORDS = [
 ];
 
 function loadSQLMeta() {
-    fetch('/wjr-test/api/sql-meta')
+    fetch('/wjr-test/api/sql-meta?target=' + SQL_TARGET)
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if (d && d.tables) {
@@ -1524,7 +1603,7 @@ function discoverAPIs() {
     ['catch'](function(e) { updateStatus('请求失败', 'error'); });
 }
 
-var CATEGORY_ORDER = ['副本集', '分片集群', '通用', '公共', '公共接口', '副本集接口', '分片集群接口'];
+var CATEGORY_ORDER = ['K8S', '副本集', '分片集群', '通用', '公共', '公共接口', '副本集接口', '分片集群接口'];
 var METHOD_ORDER = { 'GET': 0, 'POST': 1, 'PUT': 2, 'DELETE': 3 };
 
 function renderScannedApis() {
@@ -2093,7 +2172,7 @@ function retryFlow(flowId) {
     fetch('/wjr-test/api/flow-retry', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({flow_id: flowId})
+        body: JSON.stringify({flow_id: flowId, target: FLOW_TARGET})
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -2157,7 +2236,7 @@ function loadExecFlowList() {
     fetch('/wjr-test/api/list-flows', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ product_id: pid, limit: 30 })
+        body: JSON.stringify({ product_id: pid, limit: 30, target: FLOW_TARGET })
     })
     .then(function(r) { return r.json(); })
     .then(function(result) {
@@ -2221,7 +2300,7 @@ function loadFlowDetail(flowId) {
     fetch('/wjr-test/api/flow-detail', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ flow_id: flowId })
+        body: JSON.stringify({ flow_id: flowId, target: FLOW_TARGET })
     })
     .then(function(r) { return r.json(); })
     .then(function(result) {
@@ -2317,7 +2396,7 @@ function loadResources() {
     fetch('/wjr-test/api/list-resources', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ limit: 100 })
+        body: JSON.stringify({ limit: 100, target: RES_TARGET })
     })
     .then(function(r) { return r.json(); })
     .then(function(result) {

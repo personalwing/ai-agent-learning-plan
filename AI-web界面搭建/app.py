@@ -1331,12 +1331,19 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(result))
             return
 
-        if self.path == '/wjr-test/api/sql-meta':
+        if self.path.startswith('/wjr-test/api/sql-meta'):
+            # 解析 ?target=nova|k8s (不带默认nova)
+            target = 'nova'
+            parts = self.path.split('?', 1)
+            if len(parts) == 2:
+                for kv in parts[1].split('&'):
+                    if kv.startswith('target=') and kv[7:] in ('nova', 'k8s'):
+                        target = kv[7:]
             try:
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.end_headers()
-                result = wjr_handler.handle_sql_meta()
+                result = wjr_handler.handle_sql_meta(target)
                 self.wfile.write(json.dumps(result, ensure_ascii=False))
             except Exception as e:
                 try:

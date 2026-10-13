@@ -9,6 +9,13 @@ from datetime import datetime
 
 # MySQL连接配置（通过 <SQL_PROXY_HOST> 上的 SQL 代理服务）
 SQL_PROXY_URL = 'http://<SQL_PROXY_HOST>:5001/query'
+# 多底座目标: nova=<SQL_PROXY_HOST> nova底座(127.0.0.1:3307), k8s=k8s集群trove底座MariaDB
+SQL_TARGETS = ('nova', 'k8s')
+SQL_DEFAULT_TARGET = 'nova'
+
+
+def _norm_target(t):
+    return t if t in SQL_TARGETS else SQL_DEFAULT_TARGET
 
 # 默认请求头（根据接口文档固定）
 DEFAULT_HEADERS = {
@@ -42,7 +49,7 @@ FIXED_APIS = [
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id_eip02}/action", "method": "POST", "category": "副本集接口", "name": "副本集释放EIP", "description": "释放副本集实例的弹性公网IP"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}/action", "method": "POST", "category": "副本集接口", "name": "锁定副本集实例", "description": "锁定副本集实例防止操作"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}", "method": "GET", "category": "副本集接口", "name": "迁移副本-获取详情", "description": "迁移副本时获取副本集实例详情"},
-    {"path": "/v1.0/{tenant_id}/backup-resources/{cluster_id}/list_backup_records", "method": "GET", "category": "副本集接口", "name": "查询副本集备份列表", "description": "查询副本集实例的备份记录列表"},
+    {"path": "/v1.0/{tenant_id}/backup-resources/list_backup_records", "method": "GET", "category": "副本集接口", "name": "查询副本集备份列表", "description": "查询副本集实例的备份记录列表，?id=备份资源ID或resource_id"},
     
     # ==================== 分片集群接口 ====================
     {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "GET", "category": "分片集群接口", "name": "获取分片集群列表(index)", "description": "获取所有未删除的分片集群实例列表"},
@@ -60,10 +67,13 @@ FIXED_APIS = [
 SCANNED_APIS = [
     # ==================== 副本集 repset ====================
     {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "GET", "category": "副本集", "name": "副本集列表", "description": "获取所有未删除副本集实例列表，分页用 offset/limit"},
-    {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "POST", "category": "副本集", "name": "创建副本集", "description": "创建 MongoDB 副本集实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"disk_size\": 25, \"name\": \"wjrdev32\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"node_num\": 3, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"version\": \"3.2\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-repset", "method": "POST", "category": "副本集", "name": "创建副本集", "description": "同一接口按body衍生: 下拉选 vm/k8s 自动填默认参数。k8s走mongodb_create_replicaset_kube流程, 前置: wjrdev部署k8s_mongodb分支且conf配mongodb.compute_backend=kube与[kubernetes]段, datastore.version需有对应kube镜像(默认4.2), volume.type转storageclass(ESSD_PL0→essd-pl0); 重复创建需改name", "actions": [
+        {"key": "vm-默认", "body": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"admin_password\": \"<ADMIN_PASSWORD>\", \"name\": \"wjrdev32\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"disk_size\": 25, \"node_num\": 3, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"version\": \"3.2\"}, \"join_shard\": false}}"},
+        {"key": "k8s-默认", "body": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"admin_password\": \"<ADMIN_PASSWORD>\", \"name\": \"wjrkube01\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"disk_size\": 25, \"node_num\": 3, \"volume\": {\"size\": 25, \"type\": \"ESSD_PL0\"}, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"type\": \"mongodb\", \"version\": \"4.2\"}, \"join_shard\": false}}"}
+    ]},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}", "method": "GET", "category": "副本集", "name": "副本集详情", "description": "获取指定副本集实例详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}", "method": "DELETE", "category": "副本集", "name": "删除副本集", "description": "删除指定副本集实例"},
-    {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}/action", "method": "POST", "category": "副本集", "name": "副本集动作", "description": "lock/unlock/rename/restart/resize/add_user 等 action，选中后 body 自动填充", "actions": [
+    {"path": "/v1.0/{tenant_id}/mongodb-repset/{cluster_id}/action", "method": "POST", "category": "副本集", "name": "副本集动作", "description": "lock/unlock/rename/restart/resize/add_user 等 action，选中后 body 自动填充; aggregate_monitor 的 target=all/primary/secondary", "actions": [
         {"key": "lock", "body": "{\"lock\": {}}"},
         {"key": "unlock", "body": "{\"unlock\": {}}"},
         {"key": "rename", "body": "{\"rename\": {\"name\": \"new_name\"}}"},
@@ -80,10 +90,10 @@ SCANNED_APIS = [
 
     # ==================== 分片集群 cluster ====================
     {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "GET", "category": "分片集群", "name": "集群列表", "description": "获取所有未删除分片集群实例列表，分页用 offset/limit"},
-    {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "POST", "category": "分片集群", "name": "创建集群", "description": "创建 MongoDB 分片集群实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_cluster\": {\"admin_user\": \"root\", \"protocol\": \"memcached\", \"name\": \"wjrdev80\", \"shards\": {\"vcpu\": 2, \"mem_size\": 4, \"shards_num\": 2, \"disk_size\": 15, \"area\": [\"1\"]}, \"config_server\": {\"vcpu\": 2, \"mem_size\": 4, \"disk_size\": 40}, \"mongos\": {\"vcpu\": 2, \"mem_size\": 4, \"mongos_num\": 2, \"disk_size\": 15, \"area\": [\"2\"]}, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"datastore\": {\"version\": \"8.0\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-cluster", "method": "POST", "category": "分片集群", "name": "创建集群", "description": "创建 MongoDB 分片集群实例，选中后 body 自动填充必传字段", "body_template": "{\"mongodb_cluster\": {\"admin_user\": \"root\", \"protocol\": \"memcached\", \"name\": \"wjrdev80\", \"shards\": {\"vcpu\": 2, \"mem_size\": 4, \"shards_num\": 2, \"disk_size\": 15, \"area\": [\"1\"]}, \"config_server\": {\"vcpu\": 2, \"mem_size\": 4, \"disk_size\": 40}, \"mongos\": {\"vcpu\": 2, \"mem_size\": 4, \"mongos_num\": 2, \"disk_size\": 15, \"area\": [\"2\"]}, \"vpc\": {\"vpc_id\": \"<VPC_ID2>\", \"vnet_id\": \"<VNET_ID2>\"}, \"datastore\": {\"version\": \"8.0\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
     {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}", "method": "GET", "category": "分片集群", "name": "集群详情", "description": "获取指定分片集群实例详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}", "method": "DELETE", "category": "分片集群", "name": "删除集群", "description": "删除指定分片集群实例"},
-    {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}/action", "method": "POST", "category": "分片集群", "name": "集群动作", "description": "list_shards/add_shard/lock/unlock 等 action，选中后 body 自动填充", "actions": [
+    {"path": "/v1.0/{tenant_id}/mongodb-cluster/{cluster_id}/action", "method": "POST", "category": "分片集群", "name": "集群动作", "description": "list_shards/add_shard/lock/unlock 等 action，选中后 body 自动填充; aggregate_monitor 的 target=mongos/shard/all(target=configsvr 会报错)", "actions": [
         {"key": "lock", "body": "{\"lock\": {}}"},
         {"key": "unlock", "body": "{\"unlock\": {}}"},
         {"key": "rename", "body": "{\"rename\": {\"name\": \"new_name\"}}"},
@@ -106,7 +116,7 @@ SCANNED_APIS = [
     {"path": "/v1.0/{tenant_id}/mongodb-resource", "method": "POST", "category": "通用", "name": "创建资源", "description": "创建 MongoDB 资源(按 type/mode 指定副本集或集群)，选中后 body 自动填充", "body_template": "{\"mongodb_repset\": {\"admin_user\": \"root\", \"disk_size\": 25, \"name\": \"wjrdev32\", \"area\": [\"1\"], \"vcpu\": 2, \"mem_size\": 4, \"node_num\": 3, \"vpc\": {\"vpc_id\": \"<VPC_ID>\", \"vnet_id\": \"<VNET_ID>\"}, \"protocol\": \"memcached\", \"datastore\": {\"version\": \"3.2\"}, \"join_shard\": false, \"admin_password\": \"<ADMIN_PASSWORD>\"}}"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}", "method": "GET", "category": "通用", "name": "资源详情", "description": "获取指定 MongoDB 资源详情"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}", "method": "DELETE", "category": "通用", "name": "删除资源", "description": "删除指定 MongoDB 资源"},
-    {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}/action", "method": "POST", "category": "通用", "name": "资源动作", "description": "lock/unlock/rename/restart/resize 等 action，选中后 body 自动填充", "actions": [
+    {"path": "/v1.0/{tenant_id}/mongodb-resource/{cluster_id}/action", "method": "POST", "category": "通用", "name": "资源动作", "description": "lock/unlock/rename/restart/resize 等 action，选中后 body 自动填充; aggregate_monitor 的 target 按产品类型: 副本集=all/primary/secondary, 集群=mongos/shard/all", "actions": [
         {"key": "lock", "body": "{\"lock\": {}}"},
         {"key": "unlock", "body": "{\"unlock\": {}}"},
         {"key": "rename", "body": "{\"rename\": {\"name\": \"new_name\"}}"},
@@ -120,25 +130,28 @@ SCANNED_APIS = [
         {"key": "aggregate_monitor", "body": "{\"aggregate_monitor\": {\"target\": \"all\"}}"}
     ]},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/get_instance_list", "method": "POST", "category": "通用", "name": "通用实例列表", "description": "按 type=mongodb & mode=repset/cluster 查询实例列表，选中后 body 自动填充", "body_template": "{\"type\": \"mongodb\", \"mode\": \"repset\", \"limit\": 10, \"offset\": 0}"},
+    {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/list_instances", "method": "GET", "category": "通用", "name": "产品下实例列表", "description": "查询指定产品(product_id)下的节点实例列表", "params": {}},
+    {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/ssl/certificates/{cert_id}/download", "method": "GET", "category": "通用", "name": "SSL证书下载", "description": "下载指定实例的SSL证书文件"},
 
     # ==================== 公共：统计/数据源/备份 ====================
-    {"path": "/v1.0/{tenant_id}/statistic", "method": "GET", "category": "公共", "name": "资产统计", "description": "按 db_type=mongodb 统计实例总数/运行/异常及健康分布"},
+    {"path": "/v1.0/{tenant_id}/mongodb-resource/statistic", "method": "GET", "category": "公共", "name": "资产统计", "description": "按 db_type=mongodb 统计实例总数/运行/异常及健康分布"},
     {"path": "/v1.0/{tenant_id}/datasource", "method": "GET", "category": "公共", "name": "数据源列表", "description": "按 db_type=mongodb 查询数据源列表"},
     {"path": "/v1.0/{tenant_id}/datasource/{instance_id}/sync_instance", "method": "POST", "category": "公共", "name": "同步数据源", "description": "触发指定实例数据源同步(健康检测)，body 可空", "body_template": "{}"},
     {"path": "/v1.0/{tenant_id}/backup-resources", "method": "POST", "category": "公共", "name": "发起备份", "description": "手动发起 MongoDB 物理备份，选中后 body 自动填充", "body_template": "{\"backup_resource\": {\"cluster_id\": \"\", \"mode\": \"repset\", \"reserve_days\": 7}}"},
-    {"path": "/v1.0/{tenant_id}/backup-resources/{cluster_id}/list_backup_records", "method": "GET", "category": "公共", "name": "副本集备份列表", "description": "查询副本集实例备份记录列表"},
-    {"path": "/v1.0/{tenant_id}/backup-resources/{cluster_id}/list_cluster_backup_records", "method": "GET", "category": "公共", "name": "集群备份列表", "description": "查询分片集群实例备份记录列表"},
+    {"path": "/v1.0/{tenant_id}/backup-resources/detail", "method": "GET", "category": "公共", "name": "备份资源详情", "description": "列出当前租户所有备份资源详情"},
+    {"path": "/v1.0/{tenant_id}/backup-resources/list_backup_records", "method": "GET", "category": "公共", "name": "副本集备份列表", "description": "查询副本集实例备份记录列表，?id=备份资源ID或resource_id", "params": {"id": ""}},
+    {"path": "/v1.0/{tenant_id}/backup-resources/list_cluster_backup_records", "method": "GET", "category": "公共", "name": "集群备份列表", "description": "查询分片集群实例备份记录列表，?id=备份资源ID或resource_id", "params": {"id": ""}},
     {"path": "/v1.0/{tenant_id}/backup-records/{record_id}", "method": "DELETE", "category": "公共", "name": "删除备份记录", "description": "按备份记录 ID 删除指定备份"},
 
     # ==================== 会话管理(mongodb-resource, 2026-09 dmp 一期) ====================
-    {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/session-mgmt", "method": "GET", "category": "会话管理", "name": "会话列表+连接统计", "description": "返回会话列表/连接明细/统计。可选参数: instance_id(按节点查, 副本集secondary/集群shard/configsvr均支持)、active_only(默认true)、min_secs_running(秒)。不传instance_id时副本集fan-out全部业务节点、集群fan-out全部mongos", "params": {"instance_id": "", "active_only": "true", "min_secs_running": "0"}},
+    {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/session-mgmt", "method": "GET", "category": "会话管理", "name": "会话列表+连接统计", "description": "返回会话列表/连接明细/统计+node_stats节点级五项概览(一次请求同拿明细与概览)。可选参数: instance_id(按节点查, 副本集secondary/集群shard/configsvr均支持)、active_only(默认true)、min_secs_running(秒)。不传instance_id时副本集fan-out全部业务节点、集群fan-out全部mongos", "params": {"instance_id": "", "active_only": "true", "min_secs_running": "0"}},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/session-mgmt/kill", "method": "POST", "category": "会话管理", "name": "终止会话", "description": "单条/精确批量用opids(必传instance_id, opid为节点本地值须与查询节点同源, 集群可为\"shard:opid\")；条件批量用pattern(users/roles需实例侧kscSessionMgr角色授权, 3.6有服务端自中断bug表现400快速失败, 4.0+正常)", "body_template": "{\"opids\": [12345], \"instance_id\": \"\", \"force\": false}"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/session-mgmt/kill", "method": "POST", "category": "会话管理", "name": "条件批量终止(pattern)", "description": "按pattern批量kill: {\"users\":[{\"user\":\"x\",\"db\":\"admin\"}]} / {\"roles\":[...]} / {\"lsid\":{...}}; 不传instance_id时按拓扑定位(副本集primary/集群mongos)", "body_template": "{\"pattern\": {\"users\": [{\"user\": \"\", \"db\": \"admin\"}]}, \"instance_id\": \"\"}"},
     {"path": "/v1.0/{tenant_id}/mongodb-resource/{product_id}/session-mgmt/history", "method": "GET", "category": "会话管理", "name": "终止历史", "description": "会话终止操作审计记录(按start_time倒序), 支持limit与instance_id(节点)过滤", "params": {"limit": "10", "instance_id": ""}},
 
     # ==================== 账号管理(instances/{instance_id}/accounts, dmp 一期) ====================
     {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts", "method": "GET", "category": "账号管理", "name": "账号列表", "description": "查询实例账号列表, 支持keyword模糊过滤", "params": {"keyword": ""}},
-    {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts", "method": "POST", "category": "账号管理", "name": "创建账号", "description": "创建账号, roles为标准mongo角色(read/readWrite/dbAdmin/root等); 系统保留用户/短密码/非法字符等会被拒绝(1104/1105)", "body_template": "{\"name\": \"wjrtest_user\", \"password\": \"KingSoft123!\", \"description\": \"测试账号\", \"databases\": [{\"name\": \"admin\", \"roles\": [\"read\"]}]}"},
+    {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts", "method": "POST", "category": "账号管理", "name": "创建账号", "description": "创建账号, roles为标准mongo角色(read/readWrite/dbAdmin/root等); 系统保留用户/短密码/非法字符等会被拒绝(1104/1105)", "body_template": "{\"name\": \"wjrtest_user\", \"password\": \"<ADMIN_PASSWORD>\", \"description\": \"测试账号\", \"databases\": [{\"name\": \"admin\", \"roles\": [\"read\"]}]}"},
     {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts/{account_name}", "method": "PUT", "category": "账号管理", "name": "修改账号密码/描述", "description": "修改账号密码与描述", "body_template": "{\"password\": \"NewPass456!!\", \"description\": \"描述已改\"}"},
     {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts/{account_name}/privileges", "method": "POST", "category": "账号管理", "name": "权限变更", "description": "变更账号在库上的角色(如admin:read -> admin:dbAdmin)", "body_template": "{\"databases\": [{\"name\": \"admin\", \"roles\": [\"dbAdmin\"]}]}"},
     {"path": "/v1.0/{tenant_id}/instances/{instance_id}/accounts/{names}", "method": "DELETE", "category": "账号管理", "name": "删除账号", "description": "删除指定账号(支持逗号分隔批量)"},
@@ -154,16 +167,20 @@ SCANNED_APIS = [
 
     # ==================== SQL窗口(dmp 一期) ====================
     {"path": "/v1.0/{tenant_id}/sql/execute", "method": "POST", "category": "SQL窗口", "name": "MQL执行", "description": "执行MQL语句(读/写需confirmed=true); dropDatabase等黑名单拒绝; 多语句; 1000行截断", "body_template": "{\"instance_id\": \"\", \"datasource_type\": \"admin\", \"database\": \"admin\", \"statement\": \"db.runCommand({ping: 1})\", \"confirmed\": false}"},
-    {"path": "/v1.0/{tenant_id}/sql/check", "method": "POST", "category": "SQL窗口", "name": "MQL语法校验", "description": "校验MQL语句合法性(不执行)", "body_template": "{\"instance_id\": \"\", \"datasource_type\": \"admin\", \"database\": \"admin\", \"statement\": \"db.t1.find({})\"}"},
-    {"path": "/v1.0/{tenant_id}/sql/pretty", "method": "POST", "category": "SQL窗口", "name": "MQL格式化", "description": "格式化MQL语句", "body_template": "{\"statement\": \"db.t1.find({a:1}).sort({_id:-1})\"}"},
+    {"path": "/v1.0/{tenant_id}/sql/check", "method": "POST", "category": "SQL窗口", "name": "MQL语法检查", "description": "真实语法检查(body需engine=mongodb): 多语句拆分(上限10条)/黑名单函数(eval/load/sleep/assert)/括号配对/show元命令放行, 与ga执行前置逻辑一致; 返回{success,error}, 异常HTTP仍200; 不带engine走原桩恒true(pg等不受影响)", "body_template": "{\"engine\": \"mongodb\", \"statement\": \"db.t1.find({a:1}).limit(10)\"}"},
+    {"path": "/v1.0/{tenant_id}/sql/pretty", "method": "POST", "category": "SQL窗口", "name": "MQL格式化", "description": "真实格式化(body需engine=mongodb): 按括号深度缩进, 只动空白不动token, 多语句以空行分隔; 解析失败原样返回不报错; 不带engine原样透传", "body_template": "{\"engine\": \"mongodb\", \"statement\": \"db.t1.find({a:{$gt:1}},{b:1}).sort({a:-1}).limit(5)\"}"},
     {"path": "/v1.0/{tenant_id}/sql/history", "method": "GET", "category": "SQL窗口", "name": "执行历史", "description": "MQL执行历史, 支持instance_id/limit/时间过滤(start_time/end_time), 返回record+total_count+marker", "params": {"instance_id": "", "limit": "10"}},
     {"path": "/v1.0/{tenant_id}/db", "method": "GET", "category": "SQL窗口", "name": "库列表(元数据)", "description": "返回实例的库列表(裸数组[{id,name,...}])", "params": {"instance_id": ""}},
     {"path": "/v1.0/{tenant_id}/db/{db_id}/schema", "method": "GET", "category": "SQL窗口", "name": "集合结构详情", "description": "返回库的schema(collections/fields类型推断/indexes); 需先sync_schema", "params": {}},
     {"path": "/v1.0/{tenant_id}/db/{db_id}/sync_schema", "method": "POST", "category": "SQL窗口", "name": "同步集合结构", "description": "同步指定库的集合结构与索引, body 可空", "body_template": "{}"},
+
+    # ==================== K8S(mongodb on kube, DataBase-NoSQL-1308) ====================
+    # 注意: k8s创建副本集不是独立接口, 是POST /mongodb-repset按body参数衍生(volume.type转storageclass等),
+    # 独立条目会因path+method与「创建副本集」相同被integrate_apis去重, 故做成该条目的actions下拉(vm-默认/k8s-默认)
 ]
 
-# ============ SQL 元数据缓存 ============
-_SQL_META_CACHE = {'data': None, 'ts': 0}
+# ============ SQL 元数据缓存（按底座 target 独立） ============
+_SQL_META_CACHE = {}
 _SQL_META_TTL = 300  # 5 分钟
 # =====================================
 
@@ -344,12 +361,12 @@ class WJRTestHandler:
         sql_upper = sql.upper()
         if not (sql_upper.startswith('SELECT') or sql_upper.startswith('SHOW') or sql_upper.startswith('DESCRIBE')):
             return {'success': False, 'error': '仅支持 SELECT / SHOW / DESCRIBE 查询'}
-        return self.execute_sql_query(sql)
+        return self.execute_sql_query(sql, data.get('target'))
 
-    def execute_sql_query(self, sql):
+    def execute_sql_query(self, sql, target=None):
         try:
             headers = {'Content-Type': 'application/json'}
-            payload = json.dumps({'sql': sql})
+            payload = json.dumps({'sql': sql, 'target': _norm_target(target)})
             response = requests.post(
                 SQL_PROXY_URL,
                 data=payload,
@@ -362,9 +379,10 @@ class WJRTestHandler:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    def handle_sql_meta(self):
+    def handle_sql_meta(self, target=None):
+        target = _norm_target(target)
         now = time.time()
-        cache = _SQL_META_CACHE
+        cache = _SQL_META_CACHE.setdefault(target, {'data': None, 'ts': 0})
         if cache['data'] and (now - cache['ts']) < _SQL_META_TTL:
             data = dict(cache['data'])
             data['cached'] = True
@@ -376,7 +394,7 @@ class WJRTestHandler:
                "WHERE TABLE_SCHEMA = DATABASE() "
                "ORDER BY TABLE_NAME, ORDINAL_POSITION")
 
-        result = self.execute_sql_query(sql)
+        result = self.execute_sql_query(sql, target)
 
         tables = []
         columns = {}
@@ -414,12 +432,12 @@ class WJRTestHandler:
             data['warning'] = error_msg
 
         if tables:
-            _SQL_META_CACHE['data'] = {
+            cache['data'] = {
                 'success': True,
                 'tables': tables,
                 'columns': columns
             }
-            _SQL_META_CACHE['ts'] = now
+            cache['ts'] = now
 
         return data
 
@@ -614,7 +632,7 @@ class WJRTestHandler:
     def handle_list_flows(self, data):
         """查询最近的 flow 列表。
 
-        请求: {name?, product_id?, limit?}
+        请求: {name?, product_id?, limit?, target?}
         返回: {success, data: [ {...}, ... ]}
         """
         name = (data.get('name') or '').strip()
@@ -622,6 +640,7 @@ class WJRTestHandler:
         limit = int(data.get('limit') or 30)
         if limit > 200:
             limit = 200
+        target = _norm_target(data.get('target'))
 
         where = []
         if name:
@@ -635,7 +654,7 @@ class WJRTestHandler:
                "FROM flows %s "
                "ORDER BY created DESC LIMIT %d" % (where_sql, limit))
 
-        return self.execute_sql_query(sql)
+        return self.execute_sql_query(sql, target)
 
     def handle_flow_detail(self, data):
         """根据 flow_id 查该 flow 下所有 task + 每个 task 下所有 sub_task。
@@ -647,11 +666,12 @@ class WJRTestHandler:
         if not flow_id:
             return {'success': False, 'error': '缺少 flow_id'}
         flow_id_safe = flow_id.replace("'", "''")
+        target = _norm_target(data.get('target'))
 
         flow_sql = ("SELECT id, product_id, name, status, created, updated, result, "
                     "TIMESTAMPDIFF(SECOND, created, updated) AS duration_sec "
                     "FROM flows WHERE id = '%s' LIMIT 1" % flow_id_safe)
-        flow_result = self.execute_sql_query(flow_sql)
+        flow_result = self.execute_sql_query(flow_sql, target)
         flow_rows = self._extract_rows(flow_result)
         if not flow_rows:
             return {'success': False, 'error': '未找到 flow: %s' % flow_id}
@@ -661,7 +681,7 @@ class WJRTestHandler:
                      "TIMESTAMPDIFF(SECOND, created, updated) AS duration_sec "
                      "FROM tasks WHERE flow_id = '%s' "
                      "ORDER BY created ASC" % flow_id_safe)
-        tasks_result = self.execute_sql_query(tasks_sql)
+        tasks_result = self.execute_sql_query(tasks_sql, target)
         tasks = self._extract_rows(tasks_result)
 
         for t in tasks:
@@ -669,7 +689,7 @@ class WJRTestHandler:
                       "TIMESTAMPDIFF(SECOND, created, updated) AS duration_sec "
                       "FROM sub_tasks WHERE task_id = '%s' "
                       "ORDER BY number ASC, created ASC" % t['id'].replace("'", "''"))
-            st_result = self.execute_sql_query(st_sql)
+            st_result = self.execute_sql_query(st_sql, target)
             t['sub_tasks'] = self._extract_rows(st_result)
 
         return {
@@ -688,13 +708,14 @@ class WJRTestHandler:
           SHARD_CLUSTER  -> 分片集群
         其它 type（SHARD_CLUSTER_NODE / MONGOS / CONFIGSVR）是内部节点，不展示。
 
-        请求: {limit?, include_deleted?}
+        请求: {limit?, include_deleted?, target?}
         返回: {success, data: [ {id, name, type, kind, status, created, version} ]}
         """
         limit = int(data.get('limit') or 100)
         if limit > 500:
             limit = 500
         include_deleted = bool(data.get('include_deleted'))
+        target = _norm_target(data.get('target'))
 
         where = ["type IN ('MONGODB', 'SHARD_CLUSTER')"]
         if not include_deleted:
@@ -704,7 +725,7 @@ class WJRTestHandler:
         sql = ("SELECT id, name, type, status, created, updated, deleted, version "
                "FROM products %s "
                "ORDER BY created DESC LIMIT %d" % (where_sql, limit))
-        result = self.execute_sql_query(sql)
+        result = self.execute_sql_query(sql, target)
         rows = self._extract_rows(result)
 
         for r in rows:
@@ -719,12 +740,14 @@ class WJRTestHandler:
         return {'success': True, 'data': rows, 'table': 'products'}
 
     # ============================================================
-    # flow 重试: 重置失败task + flow-run (经<SQL_PROXY_HOST>代理执行)
+    # flow 重试: 重置失败task + flow-run (经<SQL_PROXY_HOST>代理执行, 仅nova底座)
     # ============================================================
     def handle_flow_retry(self, data):
         flow_id = (data.get('flow_id') or '').strip()
         if not flow_id:
             return {'success': False, 'error': '缺少 flow_id'}
+        if _norm_target(data.get('target')) != 'nova':
+            return {'success': False, 'error': 'k8s底座暂不支持 flow 重试(代理仅nova可写库)'}
         try:
             headers = {'Content-Type': 'application/json'}
             payload = json.dumps({'flow_id': flow_id})
